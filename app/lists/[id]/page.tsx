@@ -1,6 +1,7 @@
 'use client'
 
 import { ListItem } from '@/interfaces/ListItem';
+import { Product } from '@/interfaces/Product';
 import { SupplierList } from '@/interfaces/SupplierList';
 import {
     ActionType,
@@ -10,15 +11,20 @@ import {
     RequestData
 } from '@ant-design/pro-components';
 import { Plus, Search } from '@icon-park/react';
-import { Button, Input } from '@mui/joy';
+import { Button, ConfigProvider, Input, Select, Space } from 'antd';
 import axios from 'axios';
 import { useEffect, useRef, useState } from "react";
-
 
 
 export default function ListPage(props: { params: { id: string; } }) {
 
     const [supplierList, setSupplierList] = useState<SupplierList>();
+
+    // Search bar
+    const [open, setOpen] = useState(false);
+    const [options, setOptions] = useState<Product[]>([]);
+    const [selectedProduct, setSelectedProduct] = useState<Product>();
+    // const [value, setValue] = useState<UserValue[]>([]);
 
 
     //=== ProTable stuff ===//
@@ -33,6 +39,29 @@ export default function ListPage(props: { params: { id: string; } }) {
             setSupplierList(response.data);
         } catch (error) {
             console.error(error);
+        }
+
+    }
+
+    async function getProductList(search: string) {
+        var isString = isNaN(Number(search));
+        if (isString) {
+            setTimeout(async () => {
+                var searchQuery = `${isString ? 'name' : 'sku'}=${search}`;
+
+                try {
+                    const response = await axios.get(`/api/products?${searchQuery}`);
+                    setOptions(isString
+                        // Add key to option based on id
+                        ? response.data.map((product: Product) => {
+                            return ({ ...product, key: product.id })
+                        })
+                        : [{ ...response.data, key: response.data.id }])
+                    console.log(response.data);
+                } catch (error) {
+                    console.error(error);
+                }
+            }, isString ? 1000 : 500);
         }
 
     }
@@ -162,52 +191,60 @@ export default function ListPage(props: { params: { id: string; } }) {
         getSupplierList();
     }, []);
 
+
     return (
         <div className="bg-gray-200/70 w-screen min-h-screen">
             <main className="flex flex-col max-w-screen-xl mx-auto p-4 lg:p-12 gap-6">
                 {/* Search card */}
                 <div className="p-8 rounded-xl bg-white flex flex-col gap-4">
-                    {supplierList && <h1 className="text-2xl font-bold">{supplierList.name}</h1>}
-                    <div className="flex items-center gap-4">
-                        <div className='flex gap-0 items-center flex-1'>
-                            <Input
-                                type="text"
-                                placeholder="Escanea, escribe el código de barras o busca por nombre"
-                                className="w-full h-14"
-                                size='lg'
-                                sx={{
-                                    borderRadius: '1.2rem 0 0 1.2rem',
-                                    border: '2px solid --tw-border-opacity',
-                                    fontSize: '1rem',
+                    <ConfigProvider
+                        theme={{
+                            token: {
+                                borderRadius: 36
+                            },
+                        }}
+                    >
+                        {supplierList && <h1 className="text-2xl font-bold">{supplierList.name}</h1>}
+                        <div className="flex items-center gap-4 flex-1">
+                            <Space.Compact size="large" className='w-full'>
+                                <Select
+                                    className='shadow-sm rounded-xl w-full'
+                                    size='large'
+                                    style={{
+                                        width: '90%',
+                                        height: '3.5rem'
+                                    }}
+                                    suffixIcon={null}
+                                    prefix={<Search theme="outline" size="24" fill="#0B1215" />}
+                                    placeholder="Escanea, escribe el código de barras o busca por nombre"
+                                    showSearch
+                                // onChange={handleChange}
+                                // options={options}
+                                />
+                                <Input
+                                    style={{
+                                        width: '10%',
+                                        height: '3.5rem'
+                                    }}
+                                    type='number'
+                                    min={1}
+                                    className=''
+                                />
+                            </Space.Compact>
+                            <div className='flex gap-0 items-center flex-1'>
+                            </div>
+                            <Button
+                                style={{
+                                    width: '3.75rem',
+                                    height: '3.5rem'
                                 }}
-                                startDecorator={<Search theme="outline" size="24" fill="#0B1215" />}
-
-                            />
-                            <Input
-                                type='number'
-                                placeholder='Cantidad'
-                                size='lg'
-                                className="h-14"
-                                sx={{
-                                    fontSize: '1rem',
-                                    border: '2px solid --tw-border-opacity',
-                                    borderInlineStart: 'none',
-                                    borderRadius: '0 1.2rem 1.2rem 0',
-                                    '&:hover': { bgcolor: 'transparent' }
-                                }}
+                                type="primary"
+                                size='large'
+                                shape="circle"
+                                icon={<Plus theme="outline" size="24" fill="#ffffff" />}
                             />
                         </div>
-                        <Button
-                            variant="solid"
-                            size="lg"
-                            className='size-14'
-                            sx={{
-                                borderRadius: '90rem'
-                            }}
-                        >
-                            <Plus theme="outline" size="24" fill="#0B1215" />
-                        </Button>
-                    </div>
+                    </ConfigProvider>
                 </div>
                 {/* Table card */}
                 <div className='flex flex-col gap-8 p-8 bg-white rounded-xl'>
@@ -236,15 +273,15 @@ export default function ListPage(props: { params: { id: string; } }) {
                                 xxl: 6,
                             },
                         }}
-                        // editable={{
-                        //     type: 'multiple',
-                        //     editableKeys,
-                        //     // onSave: updateUser,
-                        //     // onChange: setEditableRowKeys,
-                        //     // saveText: <CheckOutlined className="text-lg" />,
-                        //     // cancelText: <CloseOutlined className="text-lg" style={{ color: 'black' }} />,
-                        //     deleteText: <span className="hidden"></span>,
-                        // }}
+                    // editable={{
+                    //     type: 'multiple',
+                    //     editableKeys,
+                    //     // onSave: updateUser,
+                    //     // onChange: setEditableRowKeys,
+                    //     // saveText: <CheckOutlined className="text-lg" />,
+                    //     // cancelText: <CloseOutlined className="text-lg" style={{ color: 'black' }} />,
+                    //     deleteText: <span className="hidden"></span>,
+                    // }}
                     />
                 </div>
             </main>
