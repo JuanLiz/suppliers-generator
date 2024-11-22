@@ -32,7 +32,10 @@ export default function ListPage(props: { params: { id: string; } }) {
 
     // Search bar
     const searchRef = useRef<HTMLInputElement>(null);
+    const [searchValue, setSearchValue] = useState<string>();
+    const [inputMode, setInputMode] = useState<'barcode' | 'manual'>('barcode');
     const [selectedProduct, setSelectedProduct] = useState<ProductValue>();
+    const [switchInput, setSwitchInput] = useState<boolean>(false);
     const [selectedQuantity, setSelectedQuantity] = useState<number>();
     // const [value, setValue] = useState<UserValue[]>([]);
 
@@ -59,7 +62,7 @@ export default function ListPage(props: { params: { id: string; } }) {
 
     //=== Search bar methods ===//
     interface ProductValue {
-        label: string;
+        label: any;
         value: string;
         title: string[];
     }
@@ -84,7 +87,8 @@ export default function ListPage(props: { params: { id: string; } }) {
 
                 var isString = isNaN(Number(value));
 
-                debounceTimeout = isString ? 800 : 20;
+                // NO delay for barcode scanning
+                // debounceTimeout = value.includes('\n') ? 0 : isString ? 800 : 200;
 
                 fetchOptions(value).then((newOptions) => {
                     if (fetchId !== fetchRef.current) {
@@ -112,6 +116,37 @@ export default function ListPage(props: { params: { id: string; } }) {
     }
 
     async function getProductList(search: string): Promise<ProductValue[]> {
+
+        // Assign directly if barcode is scanned
+        // if (search.includes('\n')) {
+        //     try {
+        //         const response = await axios.get(`/api/products?sku=${search.trim()}`);
+        //         const product = {
+        //             label: (
+        //                 <div className="flex flex-col gap-1 leading-none">
+        //                     <div className='flex gap-1 items-center'>
+        //                         <PayCodeTwo theme="outline" size="12" fill="#9ca3af" />
+        //                         <span className="text-gray-400 text-xs">
+        //                             {response.data.sku} - {response.data.supplier?.name}
+        //                         </span>
+        //                     </div>
+        //                     <span>{response.data.name}</span>
+        //                 </div>
+        //             ),
+        //             value: response.data.id,
+        //             // Using title for store SKU and supplier name for search
+        //             title: [response.data.sku, response.data.name, response.data.supplier?.name],
+        //         }
+        //         setSelectedProduct(product);
+        //         return [product];
+
+        //     } catch (error) {
+        //         console.error(error);
+        //         messageApi.error('Producto no encontrado');
+        //         return [];
+        //     }
+
+        // } else {
         var isString = isNaN(Number(search));
         var searchQuery = `${isString ? 'name' : 'sku'}=${search}`;
 
@@ -152,6 +187,7 @@ export default function ListPage(props: { params: { id: string; } }) {
             console.error(error);
             return [];
         }
+
     }
 
     async function createListItem(e: any) {
@@ -317,21 +353,24 @@ export default function ListPage(props: { params: { id: string; } }) {
         element.focus({});
     }, [supplierList, dataSource]);
 
+
     // Focus to quantity and set default to 1 on selected product
     useEffect(() => {
-        if (!selectedProduct) return;
-        setSelectedQuantity(1);
+        if (!selectedProduct) return;   
         document.getElementById('search')?.blur();
+        setSelectedQuantity(1);
+        setSwitchInput(true);
     }, [selectedProduct]);
 
     useEffect(() => {
-        if (!selectedQuantity) return;
+        if (!selectedQuantity && !switchInput) return;
+        setSwitchInput(false);
         const element = document.getElementById('quantity') as HTMLInputElement;
         if (!element || document.activeElement == element) return;
         element.focus({});
         element.select();
 
-    }, [selectedQuantity]);
+    }, [selectedQuantity, switchInput]);
 
 
 
@@ -373,6 +412,16 @@ export default function ListPage(props: { params: { id: string; } }) {
                                     value={selectedProduct}
                                     onChange={(value) => {
                                         setSelectedProduct(value as ProductValue);
+                                    }}
+                                    onFocus={(e) => {
+                                        // Detect newline for barcode scanning
+                                        // e.target.addEventListener('keydown', (e: any) => {
+                                        //     if (e.keyCode === 13) {
+                                        //         console.log('Enter pressed');
+                                        //         setDebounceTimeout(200);
+                                        //         e.preventDefault();
+                                        //     }
+                                        // });
                                     }}
                                 />
                                 <Input
