@@ -1,12 +1,12 @@
 import { MeasureUnit } from "./MeasureUnit";
-import { Provider } from "./Provider";
+import { Supplier } from "./Supplier";
 
 export interface Product {
     id: string;
     sku: number;
     name: string;
-    providerId: number;
-    measureUnitId: number;
-    provider?: Provider;
+    supplierId: string;
+    measureUnitId: string;
+    supplier?: Supplier;
     measureUnit?: MeasureUnit;
 }

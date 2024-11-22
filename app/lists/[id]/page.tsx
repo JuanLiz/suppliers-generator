@@ -1,20 +1,53 @@
 'use client'
 
 import { ListItem } from '@/interfaces/ListItem';
+import { SupplierList } from '@/interfaces/SupplierList';
 import {
+    ActionType,
     EditableProTable,
-    ProColumns
+    ParamsType,
+    ProColumns,
+    RequestData
 } from '@ant-design/pro-components';
 import { Plus, Search } from '@icon-park/react';
 import { Button, Input } from '@mui/joy';
-import { useState } from "react";
+import axios from 'axios';
+import { useEffect, useRef, useState } from "react";
 
 
 
 export default function ListPage(props: { params: { id: string; } }) {
 
+    const [supplierList, setSupplierList] = useState<SupplierList>();
 
+
+    //=== ProTable stuff ===//
+    const [dataSource, setDataSource] = useState<readonly ListItem[]>([]);
+    // Reference for table manipulation
+    const actionRef = useRef<ActionType>();
     const [editableKeys, setEditableRowKeys] = useState<React.Key[]>([]);
+
+    async function getSupplierList() {
+        try {
+            const response = await axios.get('/api/lists/' + props.params.id);
+            setSupplierList(response.data);
+        } catch (error) {
+            console.error(error);
+        }
+
+    }
+
+    async function getListItems(params: ParamsType): Promise<Partial<RequestData<ListItem>>> {
+        // params.size = params.pageSize;
+        // params.page = params.current - 1;
+        // params.role = params?.userRoleId;
+        const response = await axios.get("/api/lists/" + props.params.id + "/items")
+        return {
+            data: response.data,
+            success: true,
+            total: response.data.length
+        };
+    }
 
     const columns: ProColumns<ListItem>[] = [
         {
@@ -22,6 +55,9 @@ export default function ListPage(props: { params: { id: string; } }) {
             dataIndex: 'sku',
             width: '5%',
             editable: false,
+            render: (text, record, index, action) => {
+                return <span className='font-bold'>{record.product.sku}</span>
+            }
         },
         {
             title: 'Producto',
@@ -29,17 +65,18 @@ export default function ListPage(props: { params: { id: string; } }) {
             search: true,
             width: '30%',
             editable: false,
+            render: (text, record, index, action) => {
+                return <span>{record.product.name}</span>
+            }
         },
         {
             title: 'Proveedor',
             dataIndex: 'provider.name',
-            width: '20%',
-            formItemProps: {
-                rules: [
-                    { required: true, message: 'El campo es obligatorio', },
-                    { type: 'email', message: 'Correo inválido', },
-                ],
-            },
+            width: '10%',
+            editable: false,
+            render: (text, record, index, action) => {
+                return <span>{record.product.supplier?.name}</span>
+            }
         },
         // {
         //     title: 'Rol',
@@ -120,11 +157,17 @@ export default function ListPage(props: { params: { id: string; } }) {
         // },
     ];
 
+
+    useEffect(() => {
+        getSupplierList();
+    }, []);
+
     return (
         <div className="bg-gray-200/70 w-screen min-h-screen">
             <main className="flex flex-col max-w-screen-xl mx-auto p-4 lg:p-12 gap-6">
                 {/* Search card */}
-                <div className="p-8 rounded-xl bg-white">
+                <div className="p-8 rounded-xl bg-white flex flex-col gap-4">
+                    {supplierList && <h1 className="text-2xl font-bold">{supplierList.name}</h1>}
                     <div className="flex items-center gap-4">
                         <div className='flex gap-0 items-center flex-1'>
                             <Input
@@ -171,25 +214,17 @@ export default function ListPage(props: { params: { id: string; } }) {
                     <h2 className='font-bold text-2xl'>Productos agregados</h2>
                     <EditableProTable<ListItem>
                         rowKey="id"
-                        maxLength={20}
                         scroll={{
                             x: 960,
                         }}
                         className="-mt-4"
                         recordCreatorProps={false}
-                        // loading={!(dataSource.length > 0)}
-                        // pagination={{
-                        //     pageSize: pageSize,
-                        //     pageSizeOptions: ['10', '20', '50', '100'],
-                        //     showQuickJumper: true,
-                        //     showSizeChanger: true,
-                        //     onShowSizeChange: (_, size) => setPageSize(size)
-                        // }}
+                        loading={!(dataSource.length > 0)}
                         columns={columns}
-                        // actionRef={actionRef}
-                        // request={getUsers}
-                        // value={dataSource}
-                        // onChange={setDataSource}
+                        actionRef={actionRef}
+                        request={getListItems}
+                        value={dataSource}
+                        onChange={setDataSource}
                         search={{
                             labelWidth: 'auto',
                             span: {
@@ -201,15 +236,15 @@ export default function ListPage(props: { params: { id: string; } }) {
                                 xxl: 6,
                             },
                         }}
-                        editable={{
-                            type: 'multiple',
-                            editableKeys,
-                            // onSave: updateUser,
-                            // onChange: setEditableRowKeys,
-                            // saveText: <CheckOutlined className="text-lg" />,
-                            // cancelText: <CloseOutlined className="text-lg" style={{ color: 'black' }} />,
-                            deleteText: <span className="hidden"></span>,
-                        }}
+                        // editable={{
+                        //     type: 'multiple',
+                        //     editableKeys,
+                        //     // onSave: updateUser,
+                        //     // onChange: setEditableRowKeys,
+                        //     // saveText: <CheckOutlined className="text-lg" />,
+                        //     // cancelText: <CloseOutlined className="text-lg" style={{ color: 'black' }} />,
+                        //     deleteText: <span className="hidden"></span>,
+                        // }}
                     />
                 </div>
             </main>
