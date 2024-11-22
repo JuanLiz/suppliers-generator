@@ -15,11 +15,13 @@
     "@icon-park/react": "^1.4.2",
     "antd": "^5.22.2",
     "axios": "^1.7.7",
+    "lodash": "^4.17.21",
     "next": "14.2.18",
     "react": "^18",
     "react-dom": "^18"
   },
   "devDependencies": {
+    "@types/lodash": "^4.17.13",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
