@@ -6,5 +6,6 @@ export interface ListItem {
     productId: string;
     quantity: number;
     comment?: string;
+    updatedAt?: Date;
     product: Product;
 }

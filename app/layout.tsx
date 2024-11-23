@@ -32,6 +32,7 @@ export default function RootLayout({
               token: {
                 fontFamily: "inherit",
                 colorPrimary: "#f97316",
+                colorLink: "#f97316",
                 colorBorder: "#cdd6e2",
                 colorTextDescription: "#7b7e83",
                 colorIcon: "#7b7e83",

@@ -3,7 +3,7 @@
 import { ListItem } from '@/interfaces/ListItem';
 import { Product } from '@/interfaces/Product';
 import { SupplierList } from '@/interfaces/SupplierList';
-import { LoadingOutlined } from '@ant-design/icons';
+import { CheckOutlined, CloseOutlined, DeleteOutlined, EditOutlined, LoadingOutlined } from '@ant-design/icons';
 import {
     ActionType,
     EditableProTable,
@@ -12,7 +12,7 @@ import {
     RequestData
 } from '@ant-design/pro-components';
 import { CornerDownLeft, PayCodeTwo, Search } from '@icon-park/react';
-import { Button, ConfigProvider, Input, message, Select, SelectProps, Space, Spin, Typography } from 'antd';
+import { Button, ConfigProvider, Input, message, Popconfirm, Select, SelectProps, Space, Spin, Typography } from 'antd';
 import axios from 'axios';
 import debounce from 'lodash/debounce';
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -30,7 +30,8 @@ export default function ListPage(props: { params: { id: string; } }) {
     //=== States and refs===//
 
     const [supplierList, setSupplierList] = useState<SupplierList>();
-
+    // First focus on search input, after loading supplier list
+    const [preventFocus, setPreventFocus] = useState<boolean>(false);
     // Search bar
     const [inputMode, setInputMode] = useState<'barcode' | 'manual'>('barcode');
     // Value for search input in barcode mode
@@ -44,7 +45,7 @@ export default function ListPage(props: { params: { id: string; } }) {
     const [messageApi, contextHolder] = message.useMessage();
 
     //=== ProTable stuff ===//
-    const [dataSource, setDataSource] = useState<readonly ListItem[]>([]);
+    const [dataSource, setDataSource] = useState<readonly ListItem[]>();
     // Reference for table manipulation
     const actionRef = useRef<ActionType>();
     const [editableKeys, setEditableRowKeys] = useState<React.Key[]>([]);
@@ -146,9 +147,10 @@ export default function ListPage(props: { params: { id: string; } }) {
 
         } catch (error) {
             console.error(error);
-            messageApi.error('Producto no encontrado', .75, () => {
+            messageApi.error('Producto no encontrado').then(() => {
+                searchValueRef.current = null;
                 document.getElementById('search')?.focus();
-            });
+            })
         } finally {
             setSearching(false);
         }
@@ -208,6 +210,7 @@ export default function ListPage(props: { params: { id: string; } }) {
                 quantity: selectedQuantity,
             });
             messageApi.success('Producto agregado correctamente');
+            setPreventFocus(false);
             actionRef.current?.reload();
             setSelectedProduct(undefined);
             setSelectedQuantity(undefined);
@@ -240,11 +243,38 @@ export default function ListPage(props: { params: { id: string; } }) {
         // params.page = params.current - 1;
         // params.role = params?.userRoleId;
         const response = await axios.get("/api/lists/" + props.params.id + "/items")
+        console.log(response.data);
         return {
             data: response.data,
             success: true,
             total: response.data.length
         };
+    }
+    async function updateListItem(key: any, listItem: ListItem) {
+        console.log(key, listItem);
+        listItem.updatedAt = undefined;
+        try {
+            await axios.put('/api/lists/' + props.params.id + '/items/', listItem);
+            setPreventFocus(true);
+            messageApi.success('Producto actualizado correctamente');
+            actionRef.current?.reload();
+        } catch (error) {
+            console.error(error);
+            messageApi.error('Error al actualizar el producto');
+        }
+    }
+
+
+    async function deleteListItem(id: string) {
+        try {
+            await axios.delete('/api/lists/' + props.params.id + '/items/' + id);
+            setPreventFocus(true);
+            messageApi.success('Producto eliminado correctamente');
+            actionRef.current?.reload();
+        } catch (error) {
+            console.error(error);
+            messageApi.error('Error al eliminar el producto');
+        }
     }
 
     const columns: ProColumns<ListItem>[] = [
@@ -252,6 +282,7 @@ export default function ListPage(props: { params: { id: string; } }) {
             title: 'Código',
             dataIndex: 'sku',
             width: '5%',
+            valueType: 'digit',
             editable: false,
             render: (text, record, index, action) => {
                 return <span className='font-bold'>{record.product.sku}</span>
@@ -260,8 +291,8 @@ export default function ListPage(props: { params: { id: string; } }) {
         {
             title: 'Cantidad',
             dataIndex: 'quantity',
-            width: '5%',
-            editable: false,
+            valueType: 'digit',
+            width: '7%',
             align: 'right',
             render: (text, record, index, action) => {
                 return <span className='font-bold text-end'>{record.quantity}</span>
@@ -271,7 +302,7 @@ export default function ListPage(props: { params: { id: string; } }) {
             title: 'Producto',
             dataIndex: 'name',
             search: false,
-            width: '30%',
+            width: '25%',
             editable: false,
             render: (text, record, index, action) => {
                 return <span>{record.product.name}</span>
@@ -280,89 +311,49 @@ export default function ListPage(props: { params: { id: string; } }) {
         {
             title: 'Proveedor',
             dataIndex: 'provider.name',
-            width: '10%',
+            width: '8%',
             editable: false,
             render: (text, record, index, action) => {
                 return <span>{record.product.supplier?.name}</span>
             }
         },
-        // {
-        //     title: 'Rol',
-        //     dataIndex: 'userRoleId',
-        //     width: '15%',
-        //     filters: true,
-        //     valueType: 'select',
-        //     request: async (): Promise<RequestOptionsType[]> => {
-        //         return userRoles?.map((role) => {
-        //             return {
-        //                 label: role.name,
-        //                 value: role.id,
-        //             }
-        //         }) ?? [];
-        //     },
-        //     render: (text, record, index, action) => {
-        //         return <Tag color={record.userRole?.role === 'ADMIN'
-        //             ? 'red' :
-        //             record.userRole?.role === 'INSTRUCTOR'
-        //                 ? 'purple'
-        //                 : 'blue'}>
-        //             {record.userRole?.name}
-        //         </Tag>
-        //     },
-        //     formItemProps: {
-        //         rules: [{ required: true, message: 'El campo es obligatorio', },],
-        //     }
-        // },
         {
             title: 'Novedad',
             dataIndex: 'comment',
-            width: '15%',
-            valueType: 'date',
+            valueType: 'text',
+            width: '20%',
             search: false,
-            readonly: true
         },
-        // {
-        //     title: '',
-        //     valueType: 'option',
-        //     width: '10%',
-        //     render: (text, record, _, action) => [
-        //         <Dropdown key={`drop${record.id}-${_}`} menu={{
-        //             items: [
-        //                 {
-        //                     key: `editable-${_}`,
-        //                     label: (
-        //                         <div className="flex gap-2">
-        //                             {/* <EditOutlined color="black" /> */}
-        //                             <span>Editar</span>
-        //                         </div>
-        //                     ),
-        //                     onClick: () => {
-        //                         // action?.startEditable?.(record.id);
-        //                     }
-        //                 },
-        //                 {
-        //                     label: (
-        //                         <div className="flex gap-2">
-        //                             {/* <DeleteOutlined /> */}
-        //                             <span>Eliminar</span>
-        //                         </div>
-        //                     ),
-        //                     key: `delete-${_}`,
-        //                     danger: true,
-        //                     onClick: () => {
-        //                         // setDeletedUser(record);
-        //                         // setDeleteUserModalVisible(true);
-        //                     }
-        //                 },
-        //             ]
-
-        //         }} trigger={['click']}>
-        //             <a onClick={(e) => e.preventDefault()} className="rounded-full hover:bg-gray-100 px-1.5 pt-1 cursor-pointer">
-        //                 {/* <EllipsisOutlined className="rotate-90 text-xl" style={{ color: 'black' }} /> */}
-        //             </a>
-        //         </Dropdown>
-        //     ],
-        // },
+        {
+            title: '',
+            valueType: 'option',
+            width: '7%',
+            render: (text, record, _, action) => [
+                <Button
+                    key={record.id + 'edit'}
+                    type="text"
+                    size='large'
+                    icon={<EditOutlined style={{ fontSize: '1.1rem' }} />}
+                    onClick={() => action?.startEditable?.(record.id!)}
+                />,
+                <Popconfirm
+                    key={record.id + 'delete'}
+                    title="Se eliminará el producto de la lista"
+                    onConfirm={() => deleteListItem(record.id!)}
+                    okText="Eliminar"
+                    cancelText="Cancelar"
+                    okButtonProps={{ danger: true }}
+                >
+                    <Button
+                        type="text"
+                        size='large'
+                        style={{ marginLeft: '-12px' }}
+                        icon={<DeleteOutlined style={{ fontSize: '1.1rem' }} />}
+                        danger
+                    />
+                </Popconfirm>,
+            ],
+        },
     ];
 
 
@@ -374,9 +365,10 @@ export default function ListPage(props: { params: { id: string; } }) {
 
     useEffect(() => {
         const element = document.getElementById('search');
-        if (!supplierList || !dataSource || !element) return;
+        if (!supplierList || !dataSource || preventFocus || !element) return;
+
         element.focus({});
-    }, [supplierList, dataSource]);
+    }, [supplierList, dataSource, preventFocus]);
 
 
     // Focus to quantity and set default to 1 on selected product
@@ -478,7 +470,13 @@ export default function ListPage(props: { params: { id: string; } }) {
                                             if (e.keyCode === 13 && inputMode === 'barcode'
                                                 && document.activeElement?.id != 'quantity') {
                                                 setSelectedProduct(undefined);
-                                                getScannedProduct();
+                                                if (isNaN(Number(searchValueRef.current))) {
+                                                    messageApi.error('Código de barras inválido');
+                                                    searchValueRef.current = null;
+                                                    setSearching(false);
+                                                    document.getElementById('search')?.focus();
+                                                } else { getScannedProduct() }
+
                                             }
                                         });
 
@@ -595,7 +593,7 @@ export default function ListPage(props: { params: { id: string; } }) {
                         }}
                         className="-mt-4"
                         recordCreatorProps={false}
-                        loading={!(dataSource.length > 0)}
+                        loading={dataSource == undefined}
                         columns={columns}
                         actionRef={actionRef}
                         request={getListItems}
@@ -612,15 +610,33 @@ export default function ListPage(props: { params: { id: string; } }) {
                                 xxl: 6,
                             },
                         }}
-                    // editable={{
-                    //     type: 'multiple',
-                    //     editableKeys,
-                    //     // onSave: updateUser,
-                    //     // onChange: setEditableRowKeys,
-                    //     // saveText: <CheckOutlined className="text-lg" />,
-                    //     // cancelText: <CloseOutlined className="text-lg" style={{ color: 'black' }} />,
-                    //     deleteText: <span className="hidden"></span>,
-                    // }}
+                        editable={{
+                            type: 'single',
+                            editableKeys,
+                            onSave: updateListItem,
+                            onlyOneLineEditorAlertMessage: 'Solo se puede editar una fila a la vez',
+                            onChange: setEditableRowKeys,
+                            saveText: (
+                                <Button
+                                    type="text"
+                                    size='large'
+                                    icon={<CheckOutlined style={{ fontSize: '1.1rem' }} />}
+                                    color='default'
+                                />
+                            ),
+                            cancelText: (
+                                <Button
+                                    type="text"
+                                    size='large'
+                                    style={{ marginLeft: '-12px' }}
+                                    icon={<CloseOutlined style={{ fontSize: '1.1rem' }} />}
+                                    danger
+                                />
+                            ),
+                            actionRender: (row, config, dom) => {
+                                return [dom.save, dom.cancel];
+                            }
+                        }}
                     />
                 </div>
             </main >
