@@ -10,8 +10,8 @@ import {
     ProColumns,
     RequestData
 } from '@ant-design/pro-components';
-import { PayCodeTwo, Plus, Search } from '@icon-park/react';
-import { Button, ConfigProvider, Input, message, Select, SelectProps, Space } from 'antd';
+import { CornerDownLeft, PayCodeTwo, Search } from '@icon-park/react';
+import { Button, ConfigProvider, Input, message, Select, SelectProps, Space, Typography } from 'antd';
 import axios from 'axios';
 import debounce from 'lodash/debounce';
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -31,12 +31,14 @@ export default function ListPage(props: { params: { id: string; } }) {
     const [supplierList, setSupplierList] = useState<SupplierList>();
 
     // Search bar
-    const searchRef = useRef<HTMLInputElement>(null);
-    const [searchValue, setSearchValue] = useState<string>();
     const [inputMode, setInputMode] = useState<'barcode' | 'manual'>('barcode');
+    // Value for search input in barcode mode
+    const searchValueRef = useRef<any>(null);
     const [selectedProduct, setSelectedProduct] = useState<ProductValue>();
     const [switchInput, setSwitchInput] = useState<boolean>(false);
+    const [quantityFocus, setQuantityFocus] = useState<boolean>(false);
     const [selectedQuantity, setSelectedQuantity] = useState<number>();
+    const [creatingItem, setCreatingItem] = useState<boolean>();
     // const [value, setValue] = useState<UserValue[]>([]);
 
     const [messageApi, contextHolder] = message.useMessage();
@@ -69,7 +71,7 @@ export default function ListPage(props: { params: { id: string; } }) {
 
     function DebounceSelect<
         ValueType extends { key?: string; label: React.ReactNode; value: string | number } = any,
-    >({ fetchOptions, debounceTimeout = 800, ...props }: DebounceSelectProps<ValueType>) {
+    >({ fetchOptions, debounceTimeout, ...props }: DebounceSelectProps<ValueType>) {
         const [fetching, setFetching] = useState(false);
         const [options, setOptions] = useState<ValueType[]>([]);
         const fetchRef = useRef(0);
@@ -108,45 +110,52 @@ export default function ListPage(props: { params: { id: string; } }) {
             <Select
                 labelInValue
                 filterOption={false}
-                onSearch={debounceFetcher}
+                onSearch={(value) => {
+                    if (inputMode === 'barcode') {
+                        searchValueRef.current = value;
+                    }
+                    else {
+                        debounceFetcher(value);
+                    }
+                }}
                 {...props}
                 options={options}
             />
         );
     }
 
+
+    // Get product scanned by barcode
+    async function getScannedProduct() {
+        try {
+            const response = await axios.get(`/api/products?sku=${searchValueRef.current}`);
+            const product = {
+                label: (
+                    <div className="flex flex-col gap-1 leading-none">
+                        <div className='flex gap-1 items-center'>
+                            <PayCodeTwo theme="outline" size="12" fill="#9ca3af" />
+                            <span className="text-gray-400 text-xs">
+                                {response.data.sku} - {response.data.supplier?.name}
+                            </span>
+                        </div>
+                        <span>{response.data.name}</span>
+                    </div>
+                ),
+                value: response.data.id,
+                // Using title for store SKU and supplier name for search
+                title: [response.data.sku, response.data.name, response.data.supplier?.name],
+            }
+            setSelectedProduct(product);
+            searchValueRef.current = null;
+
+        } catch (error) {
+            console.error(error);
+            messageApi.error('Producto no encontrado');
+        }
+    }
+
+    // Get product by manual search
     async function getProductList(search: string): Promise<ProductValue[]> {
-
-        // Assign directly if barcode is scanned
-        // if (search.includes('\n')) {
-        //     try {
-        //         const response = await axios.get(`/api/products?sku=${search.trim()}`);
-        //         const product = {
-        //             label: (
-        //                 <div className="flex flex-col gap-1 leading-none">
-        //                     <div className='flex gap-1 items-center'>
-        //                         <PayCodeTwo theme="outline" size="12" fill="#9ca3af" />
-        //                         <span className="text-gray-400 text-xs">
-        //                             {response.data.sku} - {response.data.supplier?.name}
-        //                         </span>
-        //                     </div>
-        //                     <span>{response.data.name}</span>
-        //                 </div>
-        //             ),
-        //             value: response.data.id,
-        //             // Using title for store SKU and supplier name for search
-        //             title: [response.data.sku, response.data.name, response.data.supplier?.name],
-        //         }
-        //         setSelectedProduct(product);
-        //         return [product];
-
-        //     } catch (error) {
-        //         console.error(error);
-        //         messageApi.error('Producto no encontrado');
-        //         return [];
-        //     }
-
-        // } else {
         var isString = isNaN(Number(search));
         var searchQuery = `${isString ? 'name' : 'sku'}=${search}`;
 
@@ -190,7 +199,8 @@ export default function ListPage(props: { params: { id: string; } }) {
 
     }
 
-    async function createListItem(e: any) {
+    async function createListItem() {
+        if (!selectedProduct || !selectedQuantity) return;
         try {
             const response = await axios.post('/api/lists/' + props.params.id + '/items', {
                 supplierListId: props.params.id,
@@ -201,10 +211,14 @@ export default function ListPage(props: { params: { id: string; } }) {
             actionRef.current?.reload();
             setSelectedProduct(undefined);
             setSelectedQuantity(undefined);
+            document.getElementById('search')?.focus();
         } catch (error) {
             console.error(error);
             messageApi.error('Error al agregar el producto');
+        } finally {
+            setCreatingItem(false);
         }
+
     }
 
 
@@ -245,7 +259,7 @@ export default function ListPage(props: { params: { id: string; } }) {
         {
             title: 'Producto',
             dataIndex: 'name',
-            search: true,
+            search: false,
             width: '30%',
             editable: false,
             render: (text, record, index, action) => {
@@ -356,7 +370,7 @@ export default function ListPage(props: { params: { id: string; } }) {
 
     // Focus to quantity and set default to 1 on selected product
     useEffect(() => {
-        if (!selectedProduct) return;   
+        if (!selectedProduct) return;
         document.getElementById('search')?.blur();
         setSelectedQuantity(1);
         setSwitchInput(true);
@@ -367,12 +381,16 @@ export default function ListPage(props: { params: { id: string; } }) {
         setSwitchInput(false);
         const element = document.getElementById('quantity') as HTMLInputElement;
         if (!element || document.activeElement == element) return;
+        setQuantityFocus(true);
         element.focus({});
         element.select();
 
     }, [selectedQuantity, switchInput]);
 
-
+    useEffect(() => {
+        if (creatingItem == undefined) return;
+        createListItem();
+    }, [creatingItem]);
 
     return (
         <div className="bg-gray-200/70 w-screen min-h-screen">
@@ -391,37 +409,67 @@ export default function ListPage(props: { params: { id: string; } }) {
 
                         <div className='flex items-center gap-4 flex-1'>
                             <Space.Compact size="large" className='w-full'>
+                                {/* Select between barcode and manual input */}
+                                <Select
+                                    style={{
+                                        width: '20%',
+                                        height: '3.5rem'
+                                    }}
+                                    className='shadow-sm rounded-xl w-1/4'
+                                    size='large'
+                                    value={inputMode}
+                                    onChange={(value) => setInputMode(value)}
+                                    options={[
+                                        {
+                                            label: (
+                                                <div className='flex gap-1.5 items-center'>
+                                                    <PayCodeTwo theme="outline" strokeWidth={3} size="24" fill="#0B1215" />
+                                                    <span>Código de barras</span>
+                                                </div>
+                                            ),
+                                            value: 'barcode'
+                                        },
+                                        {
+                                            label: (
+                                                <div className='flex gap-1.5 items-center'>
+                                                    <Search theme="outline" strokeWidth={3} size="24" fill="#0B1215" />
+                                                    <span>Búsqueda manual</span>
+                                                </div>
+                                            ),
+                                            value: 'manual'
+                                        }
+                                    ]}
+                                />
+
                                 <DebounceSelect
                                     className='shadow-sm rounded-xl w-full'
                                     size='large'
                                     id='search'
                                     style={{
-                                        width: '90%',
+                                        width: '70%',
                                         height: '3.5rem'
                                     }}
                                     suffixIcon={null}
-                                    prefix={
-                                        <div className='pe-2'>
-                                            <Search theme="outline" size="24" fill="#0B1215" />
-                                        </div>
+                                    placeholder={
+                                        inputMode === 'barcode'
+                                            ? 'Escanea el código de barras'
+                                            : 'Escribe el código o nombre del producto'
                                     }
-                                    placeholder="Escanea, escribe el código de barras o busca por nombre"
                                     showSearch
                                     notFoundContent={null}
                                     fetchOptions={getProductList}
+                                    debounceTimeout={inputMode === 'barcode' ? 100 : 800}
                                     value={selectedProduct}
                                     onChange={(value) => {
                                         setSelectedProduct(value as ProductValue);
                                     }}
                                     onFocus={(e) => {
-                                        // Detect newline for barcode scanning
-                                        // e.target.addEventListener('keydown', (e: any) => {
-                                        //     if (e.keyCode === 13) {
-                                        //         console.log('Enter pressed');
-                                        //         setDebounceTimeout(200);
-                                        //         e.preventDefault();
-                                        //     }
-                                        // });
+                                        //Detect enter press
+                                        e.target.addEventListener('keydown', (e: any) => {
+                                            if (e.keyCode === 13 && inputMode === 'barcode' && !quantityFocus) {
+                                                getScannedProduct();
+                                            }
+                                        });
                                     }}
                                 />
                                 <Input
@@ -435,7 +483,20 @@ export default function ListPage(props: { params: { id: string; } }) {
                                     value={selectedQuantity}
                                     placeholder='Cant.'
                                     onChange={(e) => setSelectedQuantity(Number(e.target.value))}
-                                    onFocus={(e) => e.target.select()}
+                                    onFocus={(e) => {
+                                        setQuantityFocus(true);
+                                        e.target.select()
+                                        // Detect enter for submit
+                                        e.target.addEventListener('keydown', (e: any) => {
+                                            if (e.keyCode === 13 && !creatingItem) {
+                                                setCreatingItem(true);
+                                            }
+                                        });
+                                    }}
+                                    onBlur={(e) => {
+                                        setQuantityFocus(false);
+                                        setCreatingItem(false);
+                                    }}
                                 />
                             </Space.Compact>
                             <div className='flex gap-0 items-center flex-1'>
@@ -448,10 +509,23 @@ export default function ListPage(props: { params: { id: string; } }) {
                                 type="primary"
                                 size='large'
                                 shape="circle"
-                                icon={<Plus theme="outline" size="24" fill="#ffffff" />}
+                                icon={<CornerDownLeft theme="outline" size="24" fill="#ffffff" />}
                                 disabled={!selectedProduct || !selectedQuantity}
                                 onClick={createListItem}
                             />
+                        </div>
+                        <div className={`mx-auto overflow-hidden transition-[max-height,opacity] duration-500 ease-in-out 
+                            ${selectedProduct && selectedQuantity && quantityFocus
+                                ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'}`}
+                        >
+                            <p className={`text-sm transform transition-transform duration-500 ease-in-out 
+                                ${selectedProduct && selectedQuantity && quantityFocus
+                                    ? 'translate-y-0'
+                                    : '-translate-y-full'}`
+                            }>
+                                Presiona <Typography.Text keyboard>Enter</Typography.Text> para agregar
+                            </p>
+
                         </div>
                     </ConfigProvider>
                 </div>
