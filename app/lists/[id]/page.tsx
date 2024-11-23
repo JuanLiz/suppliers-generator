@@ -432,269 +432,287 @@ export default function ListPage(props: { params: { id: string; } }) {
             <main className="flex flex-col max-w-screen-xl mx-auto p-4 lg:p-12 gap-6">
                 {/* Search card */}
                 <div className="p-8 rounded-xl bg-white flex flex-col gap-4">
-                    <ConfigProvider
-                        theme={{
-                            token: {
-                                borderRadius: 36
-                            },
-                        }}
-                    >
-                        {supplierList && <h1 className="text-2xl font-bold">{supplierList.name}</h1>}
+                    {!supplierList ? (
+                        <div className="animate-pulse flex flex-col gap-4">
+                            <div className="w-1/6 h-8 bg-gray-200 rounded-lg"></div>
+                            <div className='flex flex-col md:flex-row gap-4'>
+                                <div className="w-full h-14 bg-gray-200 rounded-2xl"></div>
+                                <div className="w-full h-14 md:size-14 bg-gray-200 rounded-2xl"></div>
+                            </div>
+                        </div>
+                    ) : (
+                        <ConfigProvider
+                            theme={{
+                                token: {
+                                    borderRadius: 36
+                                },
+                            }}
+                        >
+                            {supplierList && <h1 className="text-2xl font-bold">{supplierList.name}</h1>}
 
-                        <div className='flex flex-col md:flex-row items-center gap-4 flex-1'>
-                            <Space.Compact size="large" className='w-full' direction={screen.width < 640 ? 'vertical' : 'horizontal'}>
-                                {/* Select between barcode and manual input */}
-                                <Select
-                                    style={{
-                                        width: screen.width < 640 ? '100%' : screen.width < 1024 ? '28%' : '20%',
-                                        height: '3.5rem',
-                                        marginBottom:  window.screen.width < 640 ? '.5rem' : 0
-                                    }}
-                                    className='shadow-sm rounded-xl w-full mb-2'
-                                    size='large'
-                                    value={inputMode}
-                                    onChange={(value) => setInputMode(value)}
-                                    options={[
-                                        {
-                                            label: (
-                                                <div className='flex gap-1.5 items-center'>
-                                                    <PayCodeTwo theme="outline" strokeWidth={3} size="24" fill="#0B1215" />
-                                                    <span className='hidden sm:flex xl:hidden'>Código</span>
-                                                    <span className='flex sm:hidden xl:flex'>Código de barras</span>
-                                                </div>
-                                            ),
-                                            value: 'barcode'
-                                        },
-                                        {
-                                            label: (
-                                                <div className='flex gap-1.5 items-center'>
-                                                    <Search theme="outline" strokeWidth={3} size="24" fill="#0B1215" />
-                                                    <span className='hidden sm:flex xl:hidden'>Búsqueda</span>
-                                                    <span className='flex sm:hidden xl:flex'>Búsqueda manual</span>
-                                                </div>
-                                            ),
-                                            value: 'manual'
-                                        }
-                                    ]}
-                                />
-
-                                <DebounceSelect
-                                    className='shadow-sm rounded-xl w-full mb-2'
-                                    size='large'
-                                    id='search'
-                                    style={{
-                                        width: screen.width < 640 ? '100%' : screen.width < 1024 ? '50%' : '70%',
-                                        height: '3.5rem',
-                                        marginBottom:  window.screen.width < 640 ? '.5rem' : 0
-                                    }}
-                                    suffixIcon={null}
-                                    placeholder={
-                                        inputMode === 'barcode'
-                                            ? 'Escanea el código de barras'
-                                            : 'Escribe el código o nombre del producto'
-                                    }
-                                    showSearch
-                                    notFoundContent={null}
-                                    fetchOptions={getProductList}
-                                    debounceTimeout={inputMode === 'barcode' ? 100 : 800}
-                                    value={selectedProduct}
-                                    onChange={(value) => {
-                                        setSelectedProduct(value as ProductValue);
-                                    }}
-                                    onFocus={(e) => {
-                                        //Detect enter press
-                                        e.target.addEventListener('keydown', (e: any) => {
-                                            if (e.keyCode === 13 && inputMode === 'barcode'
-                                                && document.activeElement?.id != 'quantity') {
-                                                setSelectedProduct(undefined);
-                                                if (isNaN(Number(searchValueRef.current))) {
-                                                    messageApi.error('Código de barras inválido');
-                                                    searchValueRef.current = null;
-                                                    setSearching(false);
-                                                    document.getElementById('search')?.focus();
-                                                } else { getScannedProduct() }
-
+                            <div className='flex flex-col md:flex-row items-center gap-4 flex-1'>
+                                <Space.Compact size="large" className='w-full' direction={screen.width < 640 ? 'vertical' : 'horizontal'}>
+                                    {/* Select between barcode and manual input */}
+                                    <Select
+                                        style={{
+                                            width: screen.width < 640 ? '100%' : screen.width < 1024 ? '28%' : '20%',
+                                            height: '3.5rem',
+                                            marginBottom: window.screen.width < 640 ? '.5rem' : 0
+                                        }}
+                                        className='shadow-sm rounded-xl w-full mb-2'
+                                        size='large'
+                                        value={inputMode}
+                                        onChange={(value) => setInputMode(value)}
+                                        options={[
+                                            {
+                                                label: (
+                                                    <div className='flex gap-1.5 items-center'>
+                                                        <PayCodeTwo theme="outline" strokeWidth={3} size="24" fill="#0B1215" />
+                                                        <span className='hidden sm:flex xl:hidden'>Código</span>
+                                                        <span className='flex sm:hidden xl:flex'>Código de barras</span>
+                                                    </div>
+                                                ),
+                                                value: 'barcode'
+                                            },
+                                            {
+                                                label: (
+                                                    <div className='flex gap-1.5 items-center'>
+                                                        <Search theme="outline" strokeWidth={3} size="24" fill="#0B1215" />
+                                                        <span className='hidden sm:flex xl:hidden'>Búsqueda</span>
+                                                        <span className='flex sm:hidden xl:flex'>Búsqueda manual</span>
+                                                    </div>
+                                                ),
+                                                value: 'manual'
                                             }
-                                        });
+                                        ]}
+                                    />
 
-                                        //Detect right arrow for switch to quantity
+                                    <DebounceSelect
+                                        className='shadow-sm rounded-xl w-full mb-2'
+                                        size='large'
+                                        id='search'
+                                        style={{
+                                            width: screen.width < 640 ? '100%' : screen.width < 1024 ? '50%' : '70%',
+                                            height: '3.5rem',
+                                            marginBottom: window.screen.width < 640 ? '.5rem' : 0
+                                        }}
+                                        suffixIcon={null}
+                                        placeholder={
+                                            inputMode === 'barcode'
+                                                ? 'Escanea el código de barras'
+                                                : 'Escribe el código o nombre del producto'
+                                        }
+                                        showSearch
+                                        notFoundContent={null}
+                                        fetchOptions={getProductList}
+                                        debounceTimeout={inputMode === 'barcode' ? 100 : 800}
+                                        value={selectedProduct}
+                                        onChange={(value) => {
+                                            setSelectedProduct(value as ProductValue);
+                                        }}
+                                        onFocus={(e) => {
+                                            //Detect enter press
+                                            e.target.addEventListener('keydown', (e: any) => {
+                                                if (e.keyCode === 13 && inputMode === 'barcode'
+                                                    && document.activeElement?.id != 'quantity') {
+                                                    setSelectedProduct(undefined);
+                                                    if (isNaN(Number(searchValueRef.current))) {
+                                                        messageApi.error('Código de barras inválido');
+                                                        searchValueRef.current = null;
+                                                        setSearching(false);
+                                                        document.getElementById('search')?.focus();
+                                                    } else { getScannedProduct() }
+
+                                                }
+                                            });
+
+                                            //Detect right arrow for switch to quantity
+                                            e.target.addEventListener('keydown', (e: any) => {
+                                                if (e.keyCode === 39) {
+                                                    e.target.blur();
+                                                    document.getElementById('quantity')?.focus();
+                                                }
+                                            });
+                                        }}
+                                        allowClear
+                                    />
+                                    <Input
+                                        type='number'
+                                        id='quantity'
+                                        style={{
+                                            width: screen.width < 640 ? '100%' : screen.width < 1024 ? '22%' : '10%',
+                                            height: '3.5rem',
+                                            marginBottom: window.screen.width < 640 ? '.5rem' : 0
+                                        }}
+                                        className='mb-2'
+                                        min={1}
+                                        value={selectedQuantity}
+                                        placeholder='Cant.'
+                                        onChange={(e) => setSelectedQuantity(Number(e.target.value))}
+                                        onFocus={(e) => {
+                                            e.target.select()
+                                            if (selectedProduct && selectedQuantity) showKeyHint();
+                                            // Detect enter for submit
+                                            e.target.addEventListener('keydown', (e: any) => {
+                                                if (e.keyCode === 13 && !creatingItem && selectedProduct && selectedQuantity) {
+                                                    setCreatingItem(true);
+                                                }
+                                            });
+                                            // Detect left arrow for switch to search
+                                            e.target.addEventListener('keydown', (e: any) => {
+                                                if (e.keyCode === 37) {
+                                                    e.target.blur();
+                                                    document.getElementById('search')?.focus();
+                                                }
+                                            });
+
+                                            //Detect right arrow for switch to search
+                                            e.target.addEventListener('keydown', (e: any) => {
+                                                if (e.keyCode === 39) {
+                                                    e.target.blur();
+                                                    document.getElementById('searchBtn')?.focus();
+                                                }
+                                            });
+                                        }}
+                                        onBlur={(e) => hideKeyHint()}
+
+                                    />
+                                </Space.Compact>
+                                <div className='flex gap-0 items-center flex-1'>
+                                </div>
+                                <Button
+                                    style={{
+                                        width: window.screen.width < 768 ? '100%' : 'auto',
+                                        height: '3.5rem',
+                                        marginBottom: window.screen.width < 640 ? '.5rem' : 0
+                                    }}
+                                    id='searchBtn'
+                                    type="primary"
+                                    size='large'
+                                    block
+                                    // shape="circle"
+                                    icon={searching
+                                        ? <Spin indicator={
+                                            <LoadingOutlined spin style={{
+                                                color: selectedProduct && selectedQuantity ? "#ffffff" : "#cdd6e2"
+                                            }} />
+                                        } />
+                                        : <CornerDownLeft
+                                            theme="outline"
+                                            size="24"
+                                            fill={selectedProduct && selectedQuantity ? "#ffffff" : "#cdd6e2"}
+                                        />
+                                    }
+                                    disabled={!selectedProduct || !selectedQuantity}
+                                    onClick={createListItem}
+                                    loading={creatingItem}
+                                    onFocus={(e) => {
+                                        if (selectedProduct && selectedQuantity) showKeyHint();
+
+                                        // Detect left arrow for switch to quantity
                                         e.target.addEventListener('keydown', (e: any) => {
-                                            if (e.keyCode === 39) {
+                                            if (e.keyCode === 37) {
                                                 e.target.blur();
                                                 document.getElementById('quantity')?.focus();
                                             }
                                         });
-                                    }}
-                                    allowClear
-                                />
-                                <Input
-                                    type='number'
-                                    id='quantity'
-                                    style={{
-                                        width: screen.width < 640 ? '100%' : screen.width < 1024 ? '22%' : '10%',
-                                        height: '3.5rem',
-                                        marginBottom:  window.screen.width < 640 ? '.5rem' : 0
-                                    }}
-                                    className='mb-2'
-                                    min={1}
-                                    value={selectedQuantity}
-                                    placeholder='Cant.'
-                                    onChange={(e) => setSelectedQuantity(Number(e.target.value))}
-                                    onFocus={(e) => {
-                                        e.target.select()
-                                        if (selectedProduct && selectedQuantity) showKeyHint();
-                                        // Detect enter for submit
-                                        e.target.addEventListener('keydown', (e: any) => {
-                                            if (e.keyCode === 13 && !creatingItem && selectedProduct && selectedQuantity) {
-                                                setCreatingItem(true);
-                                            }
-                                        });
-                                        // Detect left arrow for switch to search
-                                        e.target.addEventListener('keydown', (e: any) => {
-                                            if (e.keyCode === 37) {
-                                                e.target.blur();
-                                                document.getElementById('search')?.focus();
-                                            }
-                                        });
 
-                                        //Detect right arrow for switch to search
-                                        e.target.addEventListener('keydown', (e: any) => {
-                                            if (e.keyCode === 39) {
-                                                e.target.blur();
-                                                document.getElementById('searchBtn')?.focus();
-                                            }
-                                        });
                                     }}
                                     onBlur={(e) => hideKeyHint()}
-
-                                />
-                            </Space.Compact>
-                            <div className='flex gap-0 items-center flex-1'>
+                                >
+                                    <p className='flex md:hidden'>Agregar</p>
+                                </Button>
                             </div>
-                            <Button
-                                style={{
-                                    width: window.screen.width < 768 ? '100%' : 'auto',
-                                    height: '3.5rem',
-                                    marginBottom:  window.screen.width < 640 ? '.5rem' : 0
-                                }}
-                                id='searchBtn'
-                                type="primary"
-                                size='large'
-                                block
-                                // shape="circle"
-                                icon={searching
-                                    ? <Spin indicator={
-                                        <LoadingOutlined spin style={{
-                                            color: selectedProduct && selectedQuantity ? "#ffffff" : "#cdd6e2"
-                                        }} />
-                                    } />
-                                    : <CornerDownLeft
-                                        theme="outline"
-                                        size="24"
-                                        fill={selectedProduct && selectedQuantity ? "#ffffff" : "#cdd6e2"}
-                                    />
-                                }
-                                disabled={!selectedProduct || !selectedQuantity}
-                                onClick={createListItem}
-                                loading={creatingItem}
-                                onFocus={(e) => {
-                                    if (selectedProduct && selectedQuantity) showKeyHint();
-
-                                    // Detect left arrow for switch to quantity
-                                    e.target.addEventListener('keydown', (e: any) => {
-                                        if (e.keyCode === 37) {
-                                            e.target.blur();
-                                            document.getElementById('quantity')?.focus();
-                                        }
-                                    });
-
-                                }}
-                                onBlur={(e) => hideKeyHint()}
+                            {alreadyAdded && <div className='lg:w-1/2 mx-auto'>
+                                <Alert
+                                    message={<span className='font-semibold'>El producto ya está en la lista</span>}
+                                    className='w-auto'
+                                    description={
+                                        <span>
+                                            Puedes modificar la cantidad existente. <b>El registro no se duplicará. </b> <br />
+                                            Si deseas agregar un nuevo producto, por favor escanea o busca otro producto.
+                                        </span>
+                                    }
+                                    type="warning"
+                                    showIcon
+                                />
+                            </div>}
+                            <div id='keyhint'
+                                className='mx-auto overflow-hidden transition-[max-height,opacity] duration-500 ease-in-out max-h-0 opacity-0'
                             >
-                                <p className='flex md:hidden'>Agregar</p>
-                            </Button>
-                        </div>
-                        {alreadyAdded && <div className='lg:w-1/2 mx-auto'>
-                            <Alert
-                                message={<span className='font-semibold'>El producto ya está en la lista</span>}
-                                className='w-auto'
-                                description={
-                                    <span>
-                                        Puedes modificar la cantidad existente. <b>El registro no se duplicará. </b> <br />
-                                        Si deseas agregar un nuevo producto, por favor escanea o busca otro producto.
-                                    </span>
-                                }
-                                type="warning"
-                                showIcon
-                            />
-                        </div>}
-                        <div id='keyhint'
-                            className='mx-auto overflow-hidden transition-[max-height,opacity] duration-500 ease-in-out max-h-0 opacity-0'
-                        >
-                            <p id='keyhint-child'
-                                className='text-sm transform transition-transform duration-500 ease-in-out -translate-y-full'
-                            >
-                                Presiona <Typography.Text keyboard>Enter</Typography.Text> para {alreadyAdded ? 'actualizar' : 'agregar'}
-                            </p>
+                                <p id='keyhint-child'
+                                    className='text-sm transform transition-transform duration-500 ease-in-out -translate-y-full'
+                                >
+                                    Presiona <Typography.Text keyboard>Enter</Typography.Text> para {alreadyAdded ? 'actualizar' : 'agregar'}
+                                </p>
 
-                        </div>
-                    </ConfigProvider>
+                            </div>
+                        </ConfigProvider>)}
                 </div>
                 {/* Table card */}
-                <div className='flex flex-col gap-8 p-8 bg-white rounded-xl'>
-                    <h2 className='font-bold text-2xl'>Productos agregados</h2>
-                    <EditableProTable<ListItem>
-                        rowKey="id"
-                        scroll={{
-                            x: 960,
-                        }}
-                        className="-mt-4"
-                        recordCreatorProps={false}
-                        loading={dataSource == undefined}
-                        columns={columns}
-                        actionRef={actionRef}
-                        request={getListItems}
-                        value={dataSource}
-                        onChange={setDataSource}
-                        search={{
-                            labelWidth: 'auto',
-                            span: {
-                                xs: 24,
-                                sm: 12,
-                                md: 12,
-                                lg: 6,
-                                xl: 6,
-                                xxl: 6,
-                            },
-                        }}
-                        editable={{
-                            type: 'single',
-                            editableKeys,
-                            onSave: updateListItem,
-                            onlyOneLineEditorAlertMessage: 'Solo se puede editar una fila a la vez',
-                            onChange: setEditableRowKeys,
-                            saveText: (
-                                <Button
-                                    type="text"
-                                    size='large'
-                                    icon={<CheckOutlined style={{ fontSize: '1.1rem' }} />}
-                                    color='default'
-                                />
-                            ),
-                            cancelText: (
-                                <Button
-                                    type="text"
-                                    size='large'
-                                    style={{ marginLeft: '-12px' }}
-                                    icon={<CloseOutlined style={{ fontSize: '1.1rem' }} />}
-                                    danger
-                                />
-                            ),
-                            actionRender: (row, config, dom) => {
-                                return [dom.save, dom.cancel];
-                            }
-                        }}
-                    />
+                <div className='flex flex-col gap-8 p-8 bg-white rounded-xl min-h-[26rem]'>
+                    {!supplierList ? (
+                        <div className="animate-pulse flex flex-col gap-12">
+                            <div className="w-1/6 h-8 bg-gray-200 rounded-lg"></div>
+                            <div className="w-full h-80 bg-gray-200 rounded-2xl"></div>
+
+                        </div>
+                    ) : (<>
+                        <h2 className='font-bold text-2xl'>Productos agregados</h2>
+                        <EditableProTable<ListItem>
+                            rowKey="id"
+                            scroll={{
+                                x: 960,
+                            }}
+                            className="-mt-4"
+                            recordCreatorProps={false}
+                            loading={dataSource == undefined}
+                            columns={columns}
+                            actionRef={actionRef}
+                            request={getListItems}
+                            value={dataSource}
+                            onChange={setDataSource}
+                            search={{
+                                labelWidth: 'auto',
+                                span: {
+                                    xs: 24,
+                                    sm: 12,
+                                    md: 12,
+                                    lg: 6,
+                                    xl: 6,
+                                    xxl: 6,
+                                },
+                            }}
+                            editable={{
+                                type: 'single',
+                                editableKeys,
+                                onSave: updateListItem,
+                                onlyOneLineEditorAlertMessage: 'Solo se puede editar una fila a la vez',
+                                onChange: setEditableRowKeys,
+                                saveText: (
+                                    <Button
+                                        type="text"
+                                        size='large'
+                                        icon={<CheckOutlined style={{ fontSize: '1.1rem' }} />}
+                                        color='default'
+                                    />
+                                ),
+                                cancelText: (
+                                    <Button
+                                        type="text"
+                                        size='large'
+                                        style={{ marginLeft: '-12px' }}
+                                        icon={<CloseOutlined style={{ fontSize: '1.1rem' }} />}
+                                        danger
+                                    />
+                                ),
+                                actionRender: (row, config, dom) => {
+                                    return [dom.save, dom.cancel];
+                                }
+                            }}
+                        />
+                    </>)}
+
                 </div>
             </main >
         </div >
