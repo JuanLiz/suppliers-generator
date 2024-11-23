@@ -12,7 +12,7 @@ import {
     RequestData
 } from '@ant-design/pro-components';
 import { CornerDownLeft, PayCodeTwo, Search } from '@icon-park/react';
-import { Button, ConfigProvider, Input, message, Popconfirm, Select, SelectProps, Space, Spin, Typography } from 'antd';
+import { Alert, Button, ConfigProvider, Input, message, Popconfirm, Select, SelectProps, Space, Spin, Typography } from 'antd';
 import axios from 'axios';
 import debounce from 'lodash/debounce';
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -38,6 +38,9 @@ export default function ListPage(props: { params: { id: string; } }) {
     const searchValueRef = useRef<any>(null);
     const [searching, setSearching] = useState<boolean>(false);
     const [selectedProduct, setSelectedProduct] = useState<ProductValue>();
+    // If product is already added to list
+    const [alreadyAdded, setAlreadyAdded] = useState<boolean>(false);
+
     const [switchInput, setSwitchInput] = useState<boolean>(false);
     const [selectedQuantity, setSelectedQuantity] = useState<number>();
     const [creatingItem, setCreatingItem] = useState<boolean>();
@@ -203,24 +206,36 @@ export default function ListPage(props: { params: { id: string; } }) {
 
     async function createListItem() {
         if (!selectedProduct || !selectedQuantity) return;
-        try {
-            const response = await axios.post('/api/lists/' + props.params.id + '/items', {
-                supplierListId: props.params.id,
-                productId: selectedProduct?.value,
-                quantity: selectedQuantity,
-            });
-            messageApi.success('Producto agregado correctamente');
-            setPreventFocus(false);
-            actionRef.current?.reload();
-            setSelectedProduct(undefined);
-            setSelectedQuantity(undefined);
-            document.getElementById('search')?.focus();
-        } catch (error) {
-            console.error(error);
-            messageApi.error('Error al agregar el producto');
-        } finally {
-            setCreatingItem(false);
+
+        // If record already exists, redirect to update
+        if (alreadyAdded) {
+            var found = dataSource?.find((item) => item.productId === selectedProduct.value);
+            if (!found) return;
+            found.quantity = selectedQuantity;
+            updateListItem(found.id, found);
+        } else {
+            try {
+                const response = await axios.post('/api/lists/' + props.params.id + '/items', {
+                    supplierListId: props.params.id,
+                    productId: selectedProduct?.value,
+                    quantity: selectedQuantity,
+                });
+                messageApi.success('Producto agregado correctamente');
+                setPreventFocus(false);
+                actionRef.current?.reload();
+                setSelectedProduct(undefined);
+                setSelectedQuantity(undefined);
+                document.getElementById('search')?.focus();
+            } catch (error) {
+                console.error(error);
+                messageApi.error('Error al agregar el producto');
+            } finally {
+                setCreatingItem(false);
+            }
         }
+
+
+
 
     }
 
@@ -255,9 +270,16 @@ export default function ListPage(props: { params: { id: string; } }) {
         listItem.updatedAt = undefined;
         try {
             await axios.put('/api/lists/' + props.params.id + '/items/', listItem);
-            setPreventFocus(true);
+            // For already added products
+            setPreventFocus(!alreadyAdded);
             messageApi.success('Producto actualizado correctamente');
             actionRef.current?.reload();
+            setSelectedProduct(undefined);
+            setSelectedQuantity(undefined);
+            // For already added products
+            setCreatingItem(false);
+            setAlreadyAdded(false);
+            document.getElementById('search')?.focus();
         } catch (error) {
             console.error(error);
             messageApi.error('Error al actualizar el producto');
@@ -283,6 +305,7 @@ export default function ListPage(props: { params: { id: string; } }) {
             dataIndex: 'sku',
             width: '5%',
             valueType: 'digit',
+            search: false,
             editable: false,
             render: (text, record, index, action) => {
                 return <span className='font-bold'>{record.product.sku}</span>
@@ -292,6 +315,7 @@ export default function ListPage(props: { params: { id: string; } }) {
             title: 'Cantidad',
             dataIndex: 'quantity',
             valueType: 'digit',
+            search: false,
             width: '7%',
             align: 'right',
             render: (text, record, index, action) => {
@@ -301,7 +325,6 @@ export default function ListPage(props: { params: { id: string; } }) {
         {
             title: 'Producto',
             dataIndex: 'name',
-            search: false,
             width: '25%',
             editable: false,
             render: (text, record, index, action) => {
@@ -313,6 +336,7 @@ export default function ListPage(props: { params: { id: string; } }) {
             dataIndex: 'provider.name',
             width: '8%',
             editable: false,
+            search: false,
             render: (text, record, index, action) => {
                 return <span>{record.product.supplier?.name}</span>
             }
@@ -374,10 +398,19 @@ export default function ListPage(props: { params: { id: string; } }) {
     // Focus to quantity and set default to 1 on selected product
     useEffect(() => {
         if (!selectedProduct) return;
-        document.getElementById('search')?.blur();
-        setSelectedQuantity(1);
-        setSwitchInput(true);
-    }, [selectedProduct]);
+        // Search if product is already added
+        const found = dataSource?.find((item) => item.productId === selectedProduct.value);
+        if (found) {
+            setAlreadyAdded(true);
+            setSelectedQuantity(found.quantity);
+
+        } else {
+            setAlreadyAdded(false);
+            document.getElementById('search')?.blur();
+            setSelectedQuantity(1);
+            setSwitchInput(true);
+        }
+    }, [selectedProduct, alreadyAdded]);
 
     useEffect(() => {
         if (!selectedQuantity && !switchInput) return;
@@ -571,13 +604,27 @@ export default function ListPage(props: { params: { id: string; } }) {
                                 onBlur={(e) => hideKeyHint()}
                             />
                         </div>
+                        {alreadyAdded && <div className='lg:w-1/2 mx-auto'>
+                            <Alert
+                                message={<span className='font-semibold'>El producto ya está en la lista</span>}
+                                className='w-auto'
+                                description={
+                                    <span>
+                                        Puedes modificar la cantidad existente. <b>El registro no se duplicará. </b> <br />
+                                        Si deseas agregar un nuevo producto, por favor escanea o busca otro producto.
+                                    </span>
+                                }
+                                type="warning"
+                                showIcon
+                            />
+                        </div>}
                         <div id='keyhint'
                             className='mx-auto overflow-hidden transition-[max-height,opacity] duration-500 ease-in-out max-h-0 opacity-0'
                         >
                             <p id='keyhint-child'
                                 className='text-sm transform transition-transform duration-500 ease-in-out -translate-y-full'
                             >
-                                Presiona <Typography.Text keyboard>Enter</Typography.Text> para agregar
+                                Presiona <Typography.Text keyboard>Enter</Typography.Text> para {alreadyAdded ? 'actualizar' : 'agregar'}
                             </p>
 
                         </div>
