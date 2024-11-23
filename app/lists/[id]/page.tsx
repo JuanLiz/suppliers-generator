@@ -3,6 +3,7 @@
 import { ListItem } from '@/interfaces/ListItem';
 import { Product } from '@/interfaces/Product';
 import { SupplierList } from '@/interfaces/SupplierList';
+import { LoadingOutlined } from '@ant-design/icons';
 import {
     ActionType,
     EditableProTable,
@@ -11,7 +12,7 @@ import {
     RequestData
 } from '@ant-design/pro-components';
 import { CornerDownLeft, PayCodeTwo, Search } from '@icon-park/react';
-import { Button, ConfigProvider, Input, message, Select, SelectProps, Space, Typography } from 'antd';
+import { Button, ConfigProvider, Input, message, Select, SelectProps, Space, Spin, Typography } from 'antd';
 import axios from 'axios';
 import debounce from 'lodash/debounce';
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -34,6 +35,7 @@ export default function ListPage(props: { params: { id: string; } }) {
     const [inputMode, setInputMode] = useState<'barcode' | 'manual'>('barcode');
     // Value for search input in barcode mode
     const searchValueRef = useRef<any>(null);
+    const [searching, setSearching] = useState<boolean>(false);
     const [selectedProduct, setSelectedProduct] = useState<ProductValue>();
     const [switchInput, setSwitchInput] = useState<boolean>(false);
     const [quantityFocus, setQuantityFocus] = useState<boolean>(false);
@@ -127,8 +129,10 @@ export default function ListPage(props: { params: { id: string; } }) {
 
     // Get product scanned by barcode
     async function getScannedProduct() {
+        setSearching(true);
         try {
             const response = await axios.get(`/api/products?sku=${searchValueRef.current}`);
+            setSearching(false);
             const product = {
                 label: (
                     <div className="flex flex-col gap-1 leading-none">
@@ -151,6 +155,8 @@ export default function ListPage(props: { params: { id: string; } }) {
         } catch (error) {
             console.error(error);
             messageApi.error('Producto no encontrado');
+        } finally {
+            setSearching(false);
         }
     }
 
@@ -493,10 +499,7 @@ export default function ListPage(props: { params: { id: string; } }) {
                                             }
                                         });
                                     }}
-                                    onBlur={(e) => {
-                                        setQuantityFocus(false);
-                                        setCreatingItem(false);
-                                    }}
+                                    onBlur={(e) => {setQuantityFocus(false)}}
                                 />
                             </Space.Compact>
                             <div className='flex gap-0 items-center flex-1'>
@@ -509,7 +512,13 @@ export default function ListPage(props: { params: { id: string; } }) {
                                 type="primary"
                                 size='large'
                                 shape="circle"
-                                icon={<CornerDownLeft theme="outline" size="24" fill="#ffffff" />}
+                                icon={searching ?<Spin indicator={<LoadingOutlined spin />} />
+                                    : <CornerDownLeft
+                                        theme="outline"
+                                        size="24"
+                                        fill={selectedProduct && selectedQuantity ? "#ffffff" : "#cdd6e2"}
+                                    />
+                                }
                                 disabled={!selectedProduct || !selectedQuantity}
                                 onClick={createListItem}
                             />
