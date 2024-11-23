@@ -441,15 +441,16 @@ export default function ListPage(props: { params: { id: string; } }) {
                     >
                         {supplierList && <h1 className="text-2xl font-bold">{supplierList.name}</h1>}
 
-                        <div className='flex items-center gap-4 flex-1'>
-                            <Space.Compact size="large" className='w-full'>
+                        <div className='flex flex-col md:flex-row items-center gap-4 flex-1'>
+                            <Space.Compact size="large" className='w-full' direction={screen.width < 640 ? 'vertical' : 'horizontal'}>
                                 {/* Select between barcode and manual input */}
                                 <Select
                                     style={{
-                                        width: '20%',
-                                        height: '3.5rem'
+                                        width: screen.width < 640 ? '100%' : screen.width < 1024 ? '28%' : '20%',
+                                        height: '3.5rem',
+                                        marginBottom:  window.screen.width < 640 ? '.5rem' : 0
                                     }}
-                                    className='shadow-sm rounded-xl w-1/4'
+                                    className='shadow-sm rounded-xl w-full mb-2'
                                     size='large'
                                     value={inputMode}
                                     onChange={(value) => setInputMode(value)}
@@ -458,7 +459,8 @@ export default function ListPage(props: { params: { id: string; } }) {
                                             label: (
                                                 <div className='flex gap-1.5 items-center'>
                                                     <PayCodeTwo theme="outline" strokeWidth={3} size="24" fill="#0B1215" />
-                                                    <span>Código de barras</span>
+                                                    <span className='hidden sm:flex xl:hidden'>Código</span>
+                                                    <span className='flex sm:hidden xl:flex'>Código de barras</span>
                                                 </div>
                                             ),
                                             value: 'barcode'
@@ -467,7 +469,8 @@ export default function ListPage(props: { params: { id: string; } }) {
                                             label: (
                                                 <div className='flex gap-1.5 items-center'>
                                                     <Search theme="outline" strokeWidth={3} size="24" fill="#0B1215" />
-                                                    <span>Búsqueda manual</span>
+                                                    <span className='hidden sm:flex xl:hidden'>Búsqueda</span>
+                                                    <span className='flex sm:hidden xl:flex'>Búsqueda manual</span>
                                                 </div>
                                             ),
                                             value: 'manual'
@@ -476,12 +479,13 @@ export default function ListPage(props: { params: { id: string; } }) {
                                 />
 
                                 <DebounceSelect
-                                    className='shadow-sm rounded-xl w-full'
+                                    className='shadow-sm rounded-xl w-full mb-2'
                                     size='large'
                                     id='search'
                                     style={{
-                                        width: '70%',
-                                        height: '3.5rem'
+                                        width: screen.width < 640 ? '100%' : screen.width < 1024 ? '50%' : '70%',
+                                        height: '3.5rem',
+                                        marginBottom:  window.screen.width < 640 ? '.5rem' : 0
                                     }}
                                     suffixIcon={null}
                                     placeholder={
@@ -527,9 +531,11 @@ export default function ListPage(props: { params: { id: string; } }) {
                                     type='number'
                                     id='quantity'
                                     style={{
-                                        width: '10%',
-                                        height: '3.5rem'
+                                        width: screen.width < 640 ? '100%' : screen.width < 1024 ? '22%' : '10%',
+                                        height: '3.5rem',
+                                        marginBottom:  window.screen.width < 640 ? '.5rem' : 0
                                     }}
+                                    className='mb-2'
                                     min={1}
                                     value={selectedQuantity}
                                     placeholder='Cant.'
@@ -567,13 +573,15 @@ export default function ListPage(props: { params: { id: string; } }) {
                             </div>
                             <Button
                                 style={{
-                                    width: '3.79rem',
-                                    height: '3.5rem'
+                                    width: window.screen.width < 768 ? '100%' : 'auto',
+                                    height: '3.5rem',
+                                    marginBottom:  window.screen.width < 640 ? '.5rem' : 0
                                 }}
                                 id='searchBtn'
                                 type="primary"
                                 size='large'
-                                shape="circle"
+                                block
+                                // shape="circle"
                                 icon={searching
                                     ? <Spin indicator={
                                         <LoadingOutlined spin style={{
@@ -602,7 +610,9 @@ export default function ListPage(props: { params: { id: string; } }) {
 
                                 }}
                                 onBlur={(e) => hideKeyHint()}
-                            />
+                            >
+                                <p className='flex md:hidden'>Agregar</p>
+                            </Button>
                         </div>
                         {alreadyAdded && <div className='lg:w-1/2 mx-auto'>
                             <Alert
