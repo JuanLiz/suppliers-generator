@@ -221,6 +221,17 @@ export default function ListPage(props: { params: { id: string; } }) {
 
     }
 
+    function showKeyHint() {
+        document.getElementById('keyhint')?.classList.add('max-h-20', 'opacity-100');
+        document.getElementById('keyhint-child')?.classList.add('translate-y-0');
+    }
+
+    function hideKeyHint() {
+        document.getElementById('keyhint')?.classList.remove('max-h-20', 'opacity-100');
+        document.getElementById('keyhint-child')?.classList.remove('translate-y-0');
+        document.getElementById('keyhint')?.classList.add('max-h-0', 'opacity-0');
+        document.getElementById('keyhint-child')?.classList.add('-translate-y-full');
+    }
 
     //=== ProTable ===//
 
@@ -470,6 +481,14 @@ export default function ListPage(props: { params: { id: string; } }) {
                                                 getScannedProduct();
                                             }
                                         });
+
+                                        //Detect right arrow for switch to quantity
+                                        e.target.addEventListener('keydown', (e: any) => {
+                                            if (e.keyCode === 39) {
+                                                e.target.blur();
+                                                document.getElementById('quantity')?.focus();
+                                            }
+                                        });
                                     }}
                                     allowClear
                                 />
@@ -486,23 +505,30 @@ export default function ListPage(props: { params: { id: string; } }) {
                                     onChange={(e) => setSelectedQuantity(Number(e.target.value))}
                                     onFocus={(e) => {
                                         e.target.select()
-                                        if (selectedProduct && selectedQuantity) {
-                                            document.getElementById('keyhint')?.classList.add('max-h-20', 'opacity-100');
-                                            document.getElementById('keyhint-child')?.classList.add('translate-y-0');
-                                        }
+                                        if (selectedProduct && selectedQuantity) showKeyHint();
                                         // Detect enter for submit
                                         e.target.addEventListener('keydown', (e: any) => {
                                             if (e.keyCode === 13 && !creatingItem && selectedProduct && selectedQuantity) {
                                                 setCreatingItem(true);
                                             }
                                         });
+                                        // Detect left arrow for switch to search
+                                        e.target.addEventListener('keydown', (e: any) => {
+                                            if (e.keyCode === 37) {
+                                                e.target.blur();
+                                                document.getElementById('search')?.focus();
+                                            }
+                                        });
+
+                                        //Detect right arrow for switch to search
+                                        e.target.addEventListener('keydown', (e: any) => {
+                                            if (e.keyCode === 39) {
+                                                e.target.blur();
+                                                document.getElementById('searchBtn')?.focus();
+                                            }
+                                        });
                                     }}
-                                    onBlur={(e) => {
-                                        document.getElementById('keyhint')?.classList.remove('max-h-20', 'opacity-100');
-                                        document.getElementById('keyhint-child')?.classList.remove('translate-y-0');
-                                        document.getElementById('keyhint')?.classList.add('max-h-0', 'opacity-0');
-                                        document.getElementById('keyhint-child')?.classList.add('-translate-y-full');
-                                    }}
+                                    onBlur={(e) => hideKeyHint()}
 
                                 />
                             </Space.Compact>
@@ -513,6 +539,7 @@ export default function ListPage(props: { params: { id: string; } }) {
                                     width: '3.79rem',
                                     height: '3.5rem'
                                 }}
+                                id='searchBtn'
                                 type="primary"
                                 size='large'
                                 shape="circle"
@@ -531,6 +558,19 @@ export default function ListPage(props: { params: { id: string; } }) {
                                 disabled={!selectedProduct || !selectedQuantity}
                                 onClick={createListItem}
                                 loading={creatingItem}
+                                onFocus={(e) => {
+                                    if (selectedProduct && selectedQuantity) showKeyHint();
+
+                                    // Detect left arrow for switch to quantity
+                                    e.target.addEventListener('keydown', (e: any) => {
+                                        if (e.keyCode === 37) {
+                                            e.target.blur();
+                                            document.getElementById('quantity')?.focus();
+                                        }
+                                    });
+
+                                }}
+                                onBlur={(e) => hideKeyHint()}
                             />
                         </div>
                         <div id='keyhint'
