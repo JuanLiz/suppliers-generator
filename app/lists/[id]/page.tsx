@@ -38,10 +38,8 @@ export default function ListPage(props: { params: { id: string; } }) {
     const [searching, setSearching] = useState<boolean>(false);
     const [selectedProduct, setSelectedProduct] = useState<ProductValue>();
     const [switchInput, setSwitchInput] = useState<boolean>(false);
-    const [quantityFocus, setQuantityFocus] = useState<boolean>(false);
     const [selectedQuantity, setSelectedQuantity] = useState<number>();
     const [creatingItem, setCreatingItem] = useState<boolean>();
-    // const [value, setValue] = useState<UserValue[]>([]);
 
     const [messageApi, contextHolder] = message.useMessage();
 
@@ -89,11 +87,6 @@ export default function ListPage(props: { params: { id: string; } }) {
                 // Return on empty search
                 if (value.length < 1) return;
 
-                var isString = isNaN(Number(value));
-
-                // NO delay for barcode scanning
-                // debounceTimeout = value.includes('\n') ? 0 : isString ? 800 : 200;
-
                 fetchOptions(value).then((newOptions) => {
                     if (fetchId !== fetchRef.current) {
                         // for fetch callback order
@@ -115,8 +108,7 @@ export default function ListPage(props: { params: { id: string; } }) {
                 onSearch={(value) => {
                     if (inputMode === 'barcode') {
                         searchValueRef.current = value;
-                    }
-                    else {
+                    } else {
                         debounceFetcher(value);
                     }
                 }}
@@ -154,7 +146,9 @@ export default function ListPage(props: { params: { id: string; } }) {
 
         } catch (error) {
             console.error(error);
-            messageApi.error('Producto no encontrado');
+            messageApi.error('Producto no encontrado', .75, () => {
+                document.getElementById('search')?.focus();
+            });
         } finally {
             setSearching(false);
         }
@@ -387,10 +381,8 @@ export default function ListPage(props: { params: { id: string; } }) {
         setSwitchInput(false);
         const element = document.getElementById('quantity') as HTMLInputElement;
         if (!element || document.activeElement == element) return;
-        setQuantityFocus(true);
         element.focus({});
         element.select();
-
     }, [selectedQuantity, switchInput]);
 
     useEffect(() => {
@@ -472,11 +464,14 @@ export default function ListPage(props: { params: { id: string; } }) {
                                     onFocus={(e) => {
                                         //Detect enter press
                                         e.target.addEventListener('keydown', (e: any) => {
-                                            if (e.keyCode === 13 && inputMode === 'barcode' && !quantityFocus) {
+                                            if (e.keyCode === 13 && inputMode === 'barcode'
+                                                && document.activeElement?.id != 'quantity') {
+                                                setSelectedProduct(undefined);
                                                 getScannedProduct();
                                             }
                                         });
                                     }}
+                                    allowClear
                                 />
                                 <Input
                                     type='number'
@@ -490,16 +485,25 @@ export default function ListPage(props: { params: { id: string; } }) {
                                     placeholder='Cant.'
                                     onChange={(e) => setSelectedQuantity(Number(e.target.value))}
                                     onFocus={(e) => {
-                                        setQuantityFocus(true);
                                         e.target.select()
+                                        if (selectedProduct && selectedQuantity) {
+                                            document.getElementById('keyhint')?.classList.add('max-h-20', 'opacity-100');
+                                            document.getElementById('keyhint-child')?.classList.add('translate-y-0');
+                                        }
                                         // Detect enter for submit
                                         e.target.addEventListener('keydown', (e: any) => {
-                                            if (e.keyCode === 13 && !creatingItem) {
+                                            if (e.keyCode === 13 && !creatingItem && selectedProduct && selectedQuantity) {
                                                 setCreatingItem(true);
                                             }
                                         });
                                     }}
-                                    onBlur={(e) => {setQuantityFocus(false)}}
+                                    onBlur={(e) => {
+                                        document.getElementById('keyhint')?.classList.remove('max-h-20', 'opacity-100');
+                                        document.getElementById('keyhint-child')?.classList.remove('translate-y-0');
+                                        document.getElementById('keyhint')?.classList.add('max-h-0', 'opacity-0');
+                                        document.getElementById('keyhint-child')?.classList.add('-translate-y-full');
+                                    }}
+
                                 />
                             </Space.Compact>
                             <div className='flex gap-0 items-center flex-1'>
@@ -512,7 +516,12 @@ export default function ListPage(props: { params: { id: string; } }) {
                                 type="primary"
                                 size='large'
                                 shape="circle"
-                                icon={searching ?<Spin indicator={<LoadingOutlined spin />} />
+                                icon={searching
+                                    ? <Spin indicator={
+                                        <LoadingOutlined spin style={{
+                                            color: selectedProduct && selectedQuantity ? "#ffffff" : "#cdd6e2"
+                                        }} />
+                                    } />
                                     : <CornerDownLeft
                                         theme="outline"
                                         size="24"
@@ -521,17 +530,15 @@ export default function ListPage(props: { params: { id: string; } }) {
                                 }
                                 disabled={!selectedProduct || !selectedQuantity}
                                 onClick={createListItem}
+                                loading={creatingItem}
                             />
                         </div>
-                        <div className={`mx-auto overflow-hidden transition-[max-height,opacity] duration-500 ease-in-out 
-                            ${selectedProduct && selectedQuantity && quantityFocus
-                                ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'}`}
+                        <div id='keyhint'
+                            className='mx-auto overflow-hidden transition-[max-height,opacity] duration-500 ease-in-out max-h-0 opacity-0'
                         >
-                            <p className={`text-sm transform transition-transform duration-500 ease-in-out 
-                                ${selectedProduct && selectedQuantity && quantityFocus
-                                    ? 'translate-y-0'
-                                    : '-translate-y-full'}`
-                            }>
+                            <p id='keyhint-child'
+                                className='text-sm transform transition-transform duration-500 ease-in-out -translate-y-full'
+                            >
                                 Presiona <Typography.Text keyboard>Enter</Typography.Text> para agregar
                             </p>
 
@@ -576,8 +583,8 @@ export default function ListPage(props: { params: { id: string; } }) {
                     // }}
                     />
                 </div>
-            </main>
-        </div>
+            </main >
+        </div >
 
     );
 }
