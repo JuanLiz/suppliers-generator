@@ -404,14 +404,14 @@ export default function ListPage(props: { params: { id: string; } }) {
     }, [viewMode]);
 
     return (
-        <div className="bg-gray-200/70 w-screen min-h-screen">
+        <div className="bg-gray-200/70 min-h-screen">
             {contextHolder}
             <main className="flex flex-col max-w-screen-xl mx-auto p-4 lg:p-12 gap-6">
                 {/* Search card */}
                 <div className="p-8 rounded-xl bg-white flex flex-col gap-4">
                     {!supplierList ? (
                         <div className="animate-pulse flex flex-col gap-4">
-                            <div className="w-1/6 h-8 bg-gray-200 rounded-lg"></div>
+                            <div className="w-full md:w-1/6 h-8 bg-gray-200 rounded-lg"></div>
                             <div className='flex flex-col md:flex-row gap-4'>
                                 <div className="w-full h-14 bg-gray-200 rounded-2xl"></div>
                                 <div className="w-full h-14 md:size-14 bg-gray-200 rounded-2xl"></div>
@@ -629,19 +629,19 @@ export default function ListPage(props: { params: { id: string; } }) {
                 <div className='flex flex-col gap-8 p-8 bg-white rounded-xl min-h-[26rem]'>
                     {!supplierList ? (
                         <div className="animate-pulse flex flex-col gap-12">
-                            <div className="w-1/6 h-8 bg-gray-200 rounded-lg"></div>
+                            <div className="w-full md:w-1/6 h-8 bg-gray-200 rounded-lg"></div>
                             <div className="w-full h-80 bg-gray-200 rounded-2xl"></div>
 
                         </div>
                     ) : (<>
-                        <div className='w-full flex items-center justify-between'>
+                        <div className='w-full flex flex-col md:flex-row md:items-center justify-between gap-4'>
                             <h2 className='font-bold text-2xl mb-1'>Productos agregados</h2>
                             <Popover
                                 content={
-                                    <div className='flex flex-col gap-4 w-[28rem] px-3 py-4' >
-                                        <h3 className='font-bold text-lg'>Opciones de guardado</h3>
+                                    <div className='flex flex-col gap-4 w-96 md:w-[28rem] px-3 py-4' >
+                                        <h3 className='font-bold text-lg'>Opciones de generación</h3>
                                         <div className='flex flex-col gap-1'>
-                                            <span className='text-sm font-semibold'>Generar</span>
+                                            
                                             <Segmented
                                                 value={pdfSaveMode}
                                                 block
@@ -666,7 +666,7 @@ export default function ListPage(props: { params: { id: string; } }) {
                                                 onChange={(value: 'name' | 'suppliers' | 'sku') => setPdfSort(value)}
                                                 options={[
                                                     {
-                                                        label: 'Nombre',
+                                                        label: 'Producto',
                                                         value: 'name'
                                                     },
                                                     {
@@ -695,13 +695,13 @@ export default function ListPage(props: { params: { id: string; } }) {
                                             block
                                             loading={isGeneratingPdf}
                                             onClick={generatePdf}
-                                            icon={<Download theme="outline" strokeWidth={3} size="16" fill="#ffffff" />}
+                                            icon={<Download theme="outline" strokeWidth={4} size="16" fill="#ffffff" />}
                                         >
                                             Descargar
                                         </Button>
                                     </div>
                                 }
-                                placement='bottomRight'
+                                placement={screen.width < 640 ? 'bottom' : 'bottomRight'}
                                 arrow={false}
                                 trigger="click"
                             >
@@ -718,10 +718,11 @@ export default function ListPage(props: { params: { id: string; } }) {
                                 </Button>
                             </Popover>
                         </div>
-                        <div className='flex gap-2 items-center'>
+                        <div className='flex flex-col md:flex-row gap-2 md:items-center'>
                             <span className='text-sm font-semibold'>Mostrar:</span>
                             <Segmented
                                 value={viewMode}
+                                className='w-min'
                                 onChange={(value: 'all' | 'suppliers') => setViewMode(value)}
                                 options={[
                                     {

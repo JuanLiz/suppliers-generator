@@ -31,7 +31,7 @@ export default function ProductListTable(
         {
             title: 'Código',
             dataIndex: 'sku',
-            width: '6%',
+            width: screen.width < 1024 ? '3%' : '6%',
             valueType: 'digit',
             search: false,
             editable: false,
@@ -48,7 +48,7 @@ export default function ProductListTable(
             dataIndex: 'quantity',
             valueType: 'digit',
             search: false,
-            width: '7%',
+            width: screen.width < 1024 ? '4%' : '7%',
             align: 'right',
             sorter: (a, b) => {
                 setPreventFocus(true);
@@ -61,7 +61,7 @@ export default function ProductListTable(
         {
             title: 'Producto',
             dataIndex: 'name',
-            width: '25%',
+            width: screen.width < 1024 ? '8%' : '25%',
             editable: false,
             sorter: (a, b) => {
                 setPreventFocus(true);
@@ -74,7 +74,7 @@ export default function ProductListTable(
         {
             title: 'Proveedor',
             dataIndex: 'provider.name',
-            width: '8%',
+            width: screen.width < 1024 ? '6%' : '8%',
             editable: false,
             search: false,
             render: (text, record, index, action) => {
@@ -85,13 +85,14 @@ export default function ProductListTable(
             title: 'Novedad',
             dataIndex: 'comment',
             valueType: 'textarea',
-            width: '20%',
+            width: screen.width < 1024 ? '8%' : '20%',
             search: false,
         },
         {
             title: '',
             valueType: 'option',
-            width: '7%',
+            width: screen.width < 1024 ? '5%' : '7%',
+            fixed: 'right',
             render: (text, record, _, action) => [
                 <Button
                     key={record.id + 'edit'}
@@ -121,14 +122,14 @@ export default function ProductListTable(
     ];
 
 
-
-
     return <EditableProTable<ListItem>
         rowKey="id"
         scroll={{
             x: 960,
+            y: 600
         }}
-        className="-mt-4"
+        size={screen.width < 1024 ? 'small' : 'middle'}
+        className="-mt-4 mx-2.5 lg:mx-0"
         recordCreatorProps={false}
         loading={dataSource == undefined}
         columns={columns}
