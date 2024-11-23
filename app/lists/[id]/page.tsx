@@ -1,20 +1,19 @@
 'use client'
 
+import ProductListTable from '@/components/ProductListTable';
 import SupplierTable from '@/components/SupplierTable';
 import { ListItem } from '@/interfaces/ListItem';
 import { Product } from '@/interfaces/Product';
 import { Supplier } from '@/interfaces/Supplier';
 import { SupplierList } from '@/interfaces/SupplierList';
-import { CheckOutlined, CloseOutlined, DeleteOutlined, EditOutlined, LoadingOutlined } from '@ant-design/icons';
+import { LoadingOutlined } from '@ant-design/icons';
 import {
     ActionType,
-    EditableProTable,
     ParamsType,
-    ProColumns,
     RequestData
 } from '@ant-design/pro-components';
 import { AdProduct, CornerDownLeft, PayCodeTwo, Search, ViewList } from '@icon-park/react';
-import { Alert, Button, ConfigProvider, Input, message, Popconfirm, Segmented, Select, SelectProps, Space, Spin, Typography } from 'antd';
+import { Alert, Button, ConfigProvider, Input, message, Segmented, Select, SelectProps, Space, Spin, Typography } from 'antd';
 import axios from 'axios';
 import debounce from 'lodash/debounce';
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -318,98 +317,7 @@ export default function ListPage(props: { params: { id: string; } }) {
         }
     }
 
-    const columns: ProColumns<ListItem>[] = [
-        {
-            title: 'Código',
-            dataIndex: 'sku',
-            width: '6%',
-            valueType: 'digit',
-            search: false,
-            editable: false,
-            sorter: (a, b) => {
-                setPreventFocus(true);
-                return a.product.sku - b.product.sku
-            },
-            render: (text, record, index, action) => {
-                return <span className='font-bold'>{record.product.sku}</span>
-            }
-        },
-        {
-            title: 'Cantidad',
-            dataIndex: 'quantity',
-            valueType: 'digit',
-            search: false,
-            width: '7%',
-            align: 'right',
-            sorter: (a, b) => {
-                setPreventFocus(true);
-                return a.quantity - b.quantity
-            },
-            render: (text, record, index, action) => {
-                return <span className='font-bold text-end'>{record.quantity}</span>
-            }
-        },
-        {
-            title: 'Producto',
-            dataIndex: 'name',
-            width: '25%',
-            editable: false,
-            sorter: (a, b) => {
-                setPreventFocus(true);
-                return a.product.name.localeCompare(b.product.name)
-            },
-            render: (text, record, index, action) => {
-                return <span>{record.product.name}</span>
-            }
-        },
-        {
-            title: 'Proveedor',
-            dataIndex: 'provider.name',
-            width: '8%',
-            editable: false,
-            search: false,
-            render: (text, record, index, action) => {
-                return <span>{record.product.supplier?.name}</span>
-            }
-        },
-        {
-            title: 'Novedad',
-            dataIndex: 'comment',
-            valueType: 'text',
-            width: '20%',
-            search: false,
-        },
-        {
-            title: '',
-            valueType: 'option',
-            width: '7%',
-            render: (text, record, _, action) => [
-                <Button
-                    key={record.id + 'edit'}
-                    type="text"
-                    size='large'
-                    icon={<EditOutlined style={{ fontSize: '1.1rem' }} />}
-                    onClick={() => action?.startEditable?.(record.id!)}
-                />,
-                <Popconfirm
-                    key={record.id + 'delete'}
-                    title="Se eliminará el producto de la lista"
-                    onConfirm={() => deleteListItem(record.id!)}
-                    okText="Eliminar"
-                    cancelText="Cancelar"
-                    okButtonProps={{ danger: true }}
-                >
-                    <Button
-                        type="text"
-                        size='large'
-                        style={{ marginLeft: '-12px' }}
-                        icon={<DeleteOutlined style={{ fontSize: '1.1rem' }} />}
-                        danger
-                    />
-                </Popconfirm>,
-            ],
-        },
-    ];
+
 
 
     //=== UseEffects ===//
@@ -731,57 +639,16 @@ export default function ListPage(props: { params: { id: string; } }) {
                             />
                         </div>
                         {viewMode === 'all' ? (
-                            <EditableProTable<ListItem>
-                                rowKey="id"
-                                scroll={{
-                                    x: 960,
-                                }}
-                                className="-mt-4"
-                                recordCreatorProps={false}
-                                loading={dataSource == undefined}
-                                columns={columns}
+                            <ProductListTable
                                 actionRef={actionRef}
-                                request={getListItems}
-                                value={dataSource}
-                                onChange={setDataSource}
-                                search={{
-                                    labelWidth: 'auto',
-                                    span: {
-                                        xs: 24,
-                                        sm: 12,
-                                        md: 12,
-                                        lg: 6,
-                                        xl: 6,
-                                        xxl: 6,
-                                    },
-                                }}
-                                editable={{
-                                    type: 'single',
-                                    editableKeys,
-                                    onSave: updateListItem,
-                                    onlyOneLineEditorAlertMessage: 'Solo se puede editar una fila a la vez',
-                                    onChange: setEditableRowKeys,
-                                    saveText: (
-                                        <Button
-                                            type="text"
-                                            size='large'
-                                            icon={<CheckOutlined style={{ fontSize: '1.1rem' }} />}
-                                            color='default'
-                                        />
-                                    ),
-                                    cancelText: (
-                                        <Button
-                                            type="text"
-                                            size='large'
-                                            style={{ marginLeft: '-12px' }}
-                                            icon={<CloseOutlined style={{ fontSize: '1.1rem' }} />}
-                                            danger
-                                        />
-                                    ),
-                                    actionRender: (row, config, dom) => {
-                                        return [dom.save, dom.cancel];
-                                    }
-                                }}
+                                dataSource={dataSource}
+                                setDataSource={setDataSource}
+                                fetchFunction={getListItems}
+                                updateFunction={updateListItem}
+                                deleteFunction={deleteListItem}
+                                editableKeys={editableKeys}
+                                setEditableRowKeys={setEditableRowKeys}
+                                setPreventFocus={setPreventFocus}
                             />
                         ) : (
                             <div className='w-full flex flex-col gap-4'>
