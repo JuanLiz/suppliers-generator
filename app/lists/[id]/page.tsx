@@ -1,5 +1,6 @@
 'use client'
 
+import ProductListDocument from '@/components/ProductListDocument';
 import ProductListTable from '@/components/ProductListTable';
 import SupplierTable from '@/components/SupplierTable';
 import { ListItem } from '@/interfaces/ListItem';
@@ -12,8 +13,9 @@ import {
     ParamsType,
     RequestData
 } from '@ant-design/pro-components';
-import { AdProduct, CornerDownLeft, PayCodeTwo, Search, ViewList } from '@icon-park/react';
-import { Alert, Button, ConfigProvider, Input, message, Segmented, Select, SelectProps, Space, Spin, Typography } from 'antd';
+import { AdProduct, CornerDownLeft, Download, FileSuccessOne, PayCodeTwo, Search, ViewList } from '@icon-park/react';
+import { pdf } from '@react-pdf/renderer';
+import { Alert, Button, Checkbox, ConfigProvider, Input, message, Popover, Segmented, Select, SelectProps, Space, Spin, Typography } from 'antd';
 import axios from 'axios';
 import debounce from 'lodash/debounce';
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -51,6 +53,11 @@ export default function ListPage(props: { params: { id: string; } }) {
     const [selectedQuantity, setSelectedQuantity] = useState<number>();
     // Lock for creating item
     const [creatingItem, setCreatingItem] = useState<boolean>();
+    // Generate PDF loading state
+    const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+    const [pdfSaveMode, setPdfSaveMode] = useState<'all' | 'suppliers'>('all');
+    const [pdfShowSku, setPdfShowSku] = useState<boolean>(true);
+    const [pdfSort, setPdfSort] = useState<'name' | 'suppliers' | 'sku'>('name');
 
     const [messageApi, contextHolder] = message.useMessage();
 
@@ -317,6 +324,32 @@ export default function ListPage(props: { params: { id: string; } }) {
         }
     }
 
+    //=== PDF Generation ===//
+
+    async function generatePdf() {
+        setIsGeneratingPdf(true);
+        if (!dataSource) return;
+        try {
+            const blob = await pdf(
+                <ProductListDocument
+                    mode={pdfSaveMode}
+                    dataSource={dataSource}
+                    sort={pdfSort}
+                    showSku={pdfShowSku}
+                    suppliers={allSuppliers}
+                />
+            ).toBlob()
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = url
+            link.download = `${supplierList?.name}.pdf`
+            link.click()
+            URL.revokeObjectURL(url)
+        } catch (error) {
+            console.error('Error generating PDF:', error)
+        }
+        setIsGeneratingPdf(false)
+    }
 
 
 
@@ -364,6 +397,11 @@ export default function ListPage(props: { params: { id: string; } }) {
         if (creatingItem == undefined) return;
         createListItem();
     }, [creatingItem]);
+
+    // Change pdf options on mode change
+    useEffect(() => {
+        setPdfSaveMode(viewMode);
+    }, [viewMode]);
 
     return (
         <div className="bg-gray-200/70 w-screen min-h-screen">
@@ -596,7 +634,90 @@ export default function ListPage(props: { params: { id: string; } }) {
 
                         </div>
                     ) : (<>
-                        <h2 className='font-bold text-2xl'>Productos agregados</h2>
+                        <div className='w-full flex items-center justify-between'>
+                            <h2 className='font-bold text-2xl mb-1'>Productos agregados</h2>
+                            <Popover
+                                content={
+                                    <div className='flex flex-col gap-4 w-[28rem] px-3 py-4' >
+                                        <h3 className='font-bold text-lg'>Opciones de guardado</h3>
+                                        <div className='flex flex-col gap-1'>
+                                            <span className='text-sm font-semibold'>Generar</span>
+                                            <Segmented
+                                                value={pdfSaveMode}
+                                                block
+                                                onChange={(value: 'all' | 'suppliers') => setPdfSaveMode(value)}
+                                                options={[
+                                                    {
+                                                        label: 'Todos los productos',
+                                                        value: 'all'
+                                                    },
+                                                    {
+                                                        label: 'Por proveedor',
+                                                        value: 'suppliers'
+                                                    }
+                                                ]}
+                                            />
+                                        </div>
+                                        {pdfSaveMode === 'all' && <div className='flex flex-col gap-1'>
+                                            <span className='text-sm font-semibold'>Ordenar por</span>
+                                            <Segmented
+                                                value={pdfSort}
+                                                block
+                                                onChange={(value: 'name' | 'suppliers' | 'sku') => setPdfSort(value)}
+                                                options={[
+                                                    {
+                                                        label: 'Nombre',
+                                                        value: 'name'
+                                                    },
+                                                    {
+                                                        label: 'Proveedor',
+                                                        value: 'suppliers'
+                                                    },
+                                                    {
+                                                        label: 'Código',
+                                                        value: 'sku'
+                                                    }
+                                                ]}
+                                            />
+                                        </div>}
+                                        <div className='flex gap-2 items-center'>
+                                            <Checkbox
+                                                checked={pdfShowSku}
+                                                onChange={(e) => setPdfShowSku(e.target.checked)}
+                                            >
+                                                <span className='font-semibold'>Mostrar códigos</span>
+                                            </Checkbox>
+                                        </div>
+                                        <Button
+                                            type='primary'
+                                            htmlType='submit'
+                                            className='mt-4'
+                                            block
+                                            loading={isGeneratingPdf}
+                                            onClick={generatePdf}
+                                            icon={<Download theme="outline" strokeWidth={3} size="16" fill="#ffffff" />}
+                                        >
+                                            Descargar
+                                        </Button>
+                                    </div>
+                                }
+                                placement='bottomRight'
+                                arrow={false}
+                                trigger="click"
+                            >
+                                <Button
+                                    type='primary'
+                                    size='large'
+                                    style={{
+                                        height: '3rem',
+                                        borderRadius: '1rem',
+                                    }}
+                                    icon={<FileSuccessOne theme="outline" strokeWidth={4} size="24" fill="#ffffff" />}
+                                >
+                                    Generar PDF
+                                </Button>
+                            </Popover>
+                        </div>
                         <div className='flex gap-2 items-center'>
                             <span className='text-sm font-semibold'>Mostrar:</span>
                             <Segmented
@@ -605,7 +726,7 @@ export default function ListPage(props: { params: { id: string; } }) {
                                 options={[
                                     {
                                         label: (
-                                            <div className='flex gap-1 items-center py-2 px-2.5'>
+                                            <div className='flex gap-1 items-center py-1.5 px-2.5'>
                                                 <ViewList
                                                     theme="outline"
                                                     strokeWidth={viewMode === 'all' ? 4 : 3}
@@ -621,7 +742,7 @@ export default function ListPage(props: { params: { id: string; } }) {
                                     },
                                     {
                                         label: (
-                                            <div className='flex gap-1 items-center py-2 px-2.5'>
+                                            <div className='flex gap-1 items-center py-1.5 px-2.5'>
                                                 <AdProduct
                                                     theme="outline"
                                                     strokeWidth={viewMode === 'suppliers' ? 4 : 3}

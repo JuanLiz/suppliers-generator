@@ -84,7 +84,7 @@ export default function ProductListTable(
         {
             title: 'Novedad',
             dataIndex: 'comment',
-            valueType: 'text',
+            valueType: 'textarea',
             width: '20%',
             search: false,
         },
