@@ -1,7 +1,9 @@
 'use client'
 
+import SupplierTable from '@/components/SupplierTable';
 import { ListItem } from '@/interfaces/ListItem';
 import { Product } from '@/interfaces/Product';
+import { Supplier } from '@/interfaces/Supplier';
 import { SupplierList } from '@/interfaces/SupplierList';
 import { CheckOutlined, CloseOutlined, DeleteOutlined, EditOutlined, LoadingOutlined } from '@ant-design/icons';
 import {
@@ -11,8 +13,8 @@ import {
     ProColumns,
     RequestData
 } from '@ant-design/pro-components';
-import { CornerDownLeft, PayCodeTwo, Search } from '@icon-park/react';
-import { Alert, Button, ConfigProvider, Input, message, Popconfirm, Select, SelectProps, Space, Spin, Typography } from 'antd';
+import { AdProduct, CornerDownLeft, PayCodeTwo, Search, ViewList } from '@icon-park/react';
+import { Alert, Button, ConfigProvider, Input, message, Popconfirm, Segmented, Select, SelectProps, Space, Spin, Typography } from 'antd';
 import axios from 'axios';
 import debounce from 'lodash/debounce';
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -29,25 +31,34 @@ export default function ListPage(props: { params: { id: string; } }) {
 
     //=== States and refs===//
 
+    //=== Search bar vars ===//
+    // Supplier list data
     const [supplierList, setSupplierList] = useState<SupplierList>();
     // First focus on search input, after loading supplier list
     const [preventFocus, setPreventFocus] = useState<boolean>(false);
-    // Search bar
+    // Input mode for search. Barcode needs enter key handling
     const [inputMode, setInputMode] = useState<'barcode' | 'manual'>('barcode');
-    // Value for search input in barcode mode
+    // Value for search input in barcode mode. Ref instead of state to real-time update
     const searchValueRef = useRef<any>(null);
+    // Loading state for search (icon)
     const [searching, setSearching] = useState<boolean>(false);
+    // Selected product for Select component
     const [selectedProduct, setSelectedProduct] = useState<ProductValue>();
     // If product is already added to list
     const [alreadyAdded, setAlreadyAdded] = useState<boolean>(false);
-
+    // Switch input focus to quantity after selecting product
     const [switchInput, setSwitchInput] = useState<boolean>(false);
+    // Quantity for selected product
     const [selectedQuantity, setSelectedQuantity] = useState<number>();
+    // Lock for creating item
     const [creatingItem, setCreatingItem] = useState<boolean>();
 
     const [messageApi, contextHolder] = message.useMessage();
 
-    //=== ProTable stuff ===//
+    //=== List view vars ===//
+    const [viewMode, setViewMode] = useState<'all' | 'suppliers'>('all');
+
+    //=== ProTable ===//
     const [dataSource, setDataSource] = useState<readonly ListItem[]>();
     // Reference for table manipulation
     const actionRef = useRef<ActionType>();
@@ -233,10 +244,6 @@ export default function ListPage(props: { params: { id: string; } }) {
                 setCreatingItem(false);
             }
         }
-
-
-
-
     }
 
     function showKeyHint() {
@@ -258,13 +265,25 @@ export default function ListPage(props: { params: { id: string; } }) {
         // params.page = params.current - 1;
         // params.role = params?.userRoleId;
         const response = await axios.get("/api/lists/" + props.params.id + "/items")
-        console.log(response.data);
         return {
             data: response.data,
             success: true,
             total: response.data.length
         };
     }
+
+    // Get unique suppliers from dataset. Using memo
+    const allSuppliers = useMemo(() => {
+        if (!dataSource) return;
+        const supplierMap = new Map<string, Supplier>()
+        dataSource.forEach((item) => {
+            if (item.product.supplier && !supplierMap.has(item.product.supplier.id)) {
+                supplierMap.set(item.product.supplier.id, item.product.supplier)
+            }
+        })
+        return Array.from(supplierMap.values()).sort((a, b) => a.name.localeCompare(b.name))
+    }, [dataSource])
+
     async function updateListItem(key: any, listItem: ListItem) {
         console.log(key, listItem);
         listItem.updatedAt = undefined;
@@ -303,10 +322,14 @@ export default function ListPage(props: { params: { id: string; } }) {
         {
             title: 'Código',
             dataIndex: 'sku',
-            width: '5%',
+            width: '6%',
             valueType: 'digit',
             search: false,
             editable: false,
+            sorter: (a, b) => {
+                setPreventFocus(true);
+                return a.product.sku - b.product.sku
+            },
             render: (text, record, index, action) => {
                 return <span className='font-bold'>{record.product.sku}</span>
             }
@@ -318,6 +341,10 @@ export default function ListPage(props: { params: { id: string; } }) {
             search: false,
             width: '7%',
             align: 'right',
+            sorter: (a, b) => {
+                setPreventFocus(true);
+                return a.quantity - b.quantity
+            },
             render: (text, record, index, action) => {
                 return <span className='font-bold text-end'>{record.quantity}</span>
             }
@@ -327,6 +354,10 @@ export default function ListPage(props: { params: { id: string; } }) {
             dataIndex: 'name',
             width: '25%',
             editable: false,
+            sorter: (a, b) => {
+                setPreventFocus(true);
+                return a.product.name.localeCompare(b.product.name)
+            },
             render: (text, record, index, action) => {
                 return <span>{record.product.name}</span>
             }
@@ -448,8 +479,7 @@ export default function ListPage(props: { params: { id: string; } }) {
                                 },
                             }}
                         >
-                            {supplierList && <h1 className="text-2xl font-bold">{supplierList.name}</h1>}
-
+                            <h1 className="text-2xl font-bold">{supplierList.name}</h1>
                             <div className='flex flex-col md:flex-row items-center gap-4 flex-1'>
                                 <Space.Compact size="large" className='w-full' direction={screen.width < 640 ? 'vertical' : 'horizontal'}>
                                     {/* Select between barcode and manual input */}
@@ -649,7 +679,7 @@ export default function ListPage(props: { params: { id: string; } }) {
                             </div>
                         </ConfigProvider>)}
                 </div>
-                {/* Table card */}
+                {/* List card */}
                 <div className='flex flex-col gap-8 p-8 bg-white rounded-xl min-h-[26rem]'>
                     {!supplierList ? (
                         <div className="animate-pulse flex flex-col gap-12">
@@ -659,58 +689,112 @@ export default function ListPage(props: { params: { id: string; } }) {
                         </div>
                     ) : (<>
                         <h2 className='font-bold text-2xl'>Productos agregados</h2>
-                        <EditableProTable<ListItem>
-                            rowKey="id"
-                            scroll={{
-                                x: 960,
-                            }}
-                            className="-mt-4"
-                            recordCreatorProps={false}
-                            loading={dataSource == undefined}
-                            columns={columns}
-                            actionRef={actionRef}
-                            request={getListItems}
-                            value={dataSource}
-                            onChange={setDataSource}
-                            search={{
-                                labelWidth: 'auto',
-                                span: {
-                                    xs: 24,
-                                    sm: 12,
-                                    md: 12,
-                                    lg: 6,
-                                    xl: 6,
-                                    xxl: 6,
-                                },
-                            }}
-                            editable={{
-                                type: 'single',
-                                editableKeys,
-                                onSave: updateListItem,
-                                onlyOneLineEditorAlertMessage: 'Solo se puede editar una fila a la vez',
-                                onChange: setEditableRowKeys,
-                                saveText: (
-                                    <Button
-                                        type="text"
-                                        size='large'
-                                        icon={<CheckOutlined style={{ fontSize: '1.1rem' }} />}
-                                        color='default'
+                        <div className='flex gap-2 items-center'>
+                            <span className='text-sm font-semibold'>Mostrar:</span>
+                            <Segmented
+                                value={viewMode}
+                                onChange={(value: 'all' | 'suppliers') => setViewMode(value)}
+                                options={[
+                                    {
+                                        label: (
+                                            <div className='flex gap-1 items-center py-2 px-2.5'>
+                                                <ViewList
+                                                    theme="outline"
+                                                    strokeWidth={viewMode === 'all' ? 4 : 3}
+                                                    size="22"
+                                                    fill="#0B1215"
+                                                />
+                                                <span className={viewMode === 'all' ? 'font-semibold' : 'font-regular'}>
+                                                    Todos
+                                                </span>
+                                            </div>
+                                        ),
+                                        value: 'all'
+                                    },
+                                    {
+                                        label: (
+                                            <div className='flex gap-1 items-center py-2 px-2.5'>
+                                                <AdProduct
+                                                    theme="outline"
+                                                    strokeWidth={viewMode === 'suppliers' ? 4 : 3}
+                                                    size="22"
+                                                    fill="#0B1215"
+                                                />
+                                                <span className={viewMode === 'suppliers' ? 'font-semibold' : 'font-regular'}>
+                                                    Proveedores
+                                                </span>
+                                            </div>
+                                        ),
+                                        value: 'suppliers'
+                                    }
+                                ]}
+                            />
+                        </div>
+                        {viewMode === 'all' ? (
+                            <EditableProTable<ListItem>
+                                rowKey="id"
+                                scroll={{
+                                    x: 960,
+                                }}
+                                className="-mt-4"
+                                recordCreatorProps={false}
+                                loading={dataSource == undefined}
+                                columns={columns}
+                                actionRef={actionRef}
+                                request={getListItems}
+                                value={dataSource}
+                                onChange={setDataSource}
+                                search={{
+                                    labelWidth: 'auto',
+                                    span: {
+                                        xs: 24,
+                                        sm: 12,
+                                        md: 12,
+                                        lg: 6,
+                                        xl: 6,
+                                        xxl: 6,
+                                    },
+                                }}
+                                editable={{
+                                    type: 'single',
+                                    editableKeys,
+                                    onSave: updateListItem,
+                                    onlyOneLineEditorAlertMessage: 'Solo se puede editar una fila a la vez',
+                                    onChange: setEditableRowKeys,
+                                    saveText: (
+                                        <Button
+                                            type="text"
+                                            size='large'
+                                            icon={<CheckOutlined style={{ fontSize: '1.1rem' }} />}
+                                            color='default'
+                                        />
+                                    ),
+                                    cancelText: (
+                                        <Button
+                                            type="text"
+                                            size='large'
+                                            style={{ marginLeft: '-12px' }}
+                                            icon={<CloseOutlined style={{ fontSize: '1.1rem' }} />}
+                                            danger
+                                        />
+                                    ),
+                                    actionRender: (row, config, dom) => {
+                                        return [dom.save, dom.cancel];
+                                    }
+                                }}
+                            />
+                        ) : (
+                            <div className='w-full flex flex-col gap-4'>
+                                {/* Get all suppliers from dataset and for each one, render a SupplierTable */}
+                                {allSuppliers?.map((supplier) => (
+                                    <SupplierTable
+                                        key={supplier.id}
+                                        supplier={supplier.name}
+                                        data={dataSource?.filter((item) => item.product.supplier?.id === supplier.id) || []}
                                     />
-                                ),
-                                cancelText: (
-                                    <Button
-                                        type="text"
-                                        size='large'
-                                        style={{ marginLeft: '-12px' }}
-                                        icon={<CloseOutlined style={{ fontSize: '1.1rem' }} />}
-                                        danger
-                                    />
-                                ),
-                                actionRender: (row, config, dom) => {
-                                    return [dom.save, dom.cancel];
-                                }
-                            }}
-                        />
+                                ))}
+                            </div>
+                        )}
                     </>)}
 
                 </div>
