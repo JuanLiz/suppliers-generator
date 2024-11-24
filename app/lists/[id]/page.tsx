@@ -193,8 +193,8 @@ export default function ListPage(props: { params: { id: string; } }) {
 
     // Get product by manual search
     async function getProductList(search: string): Promise<ProductValue[]> {
-        var isString = isNaN(Number(search));
-        var searchQuery = `${isString ? 'name' : 'sku'}=${search}`;
+        const isString = isNaN(Number(search));
+        const searchQuery = `${isString ? 'name' : 'sku'}=${search}`;
 
         try {
             const response = await axios.get(`/api/products?${searchQuery}`);
@@ -241,7 +241,7 @@ export default function ListPage(props: { params: { id: string; } }) {
 
         // If record already exists, redirect to update
         if (alreadyAdded) {
-            var found = dataSource?.find((item) => item.productId === selectedProduct.value);
+            const found = dataSource?.find((item) => item.productId === selectedProduct.value);
             if (!found) return;
             found.quantity = selectedQuantity;
             updateListItem(found.id, found);

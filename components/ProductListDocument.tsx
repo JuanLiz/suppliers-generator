@@ -26,7 +26,7 @@ export default function ProductListDocument({ mode, dataSource, sort, showSku, s
         ],
     })
     // Define styles for PDF
-    var cellLgWidth = mode === 'all'
+    const cellLgWidth = mode === 'all'
         ? showSku ? '30%' : '35%'
         : showSku ? '40%' : '45%';
 
@@ -144,7 +144,7 @@ export default function ProductListDocument({ mode, dataSource, sort, showSku, s
     }
     if (mode === 'all' && sort === 'suppliers') {
         sortedDataSource = sortedDataSource.sort((a, b) => {
-            return (a.product.supplier?.name!).localeCompare(b.product.supplier?.name!)
+            return (a.product.supplier?.name ?? '').localeCompare(b.product.supplier?.name ?? '')
         })
     }
 
