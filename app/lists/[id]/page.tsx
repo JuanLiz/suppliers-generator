@@ -300,7 +300,6 @@ export default function ListPage(props: { params: { id: string; } }) {
                 total: filteredData.length
             };
         }
-        setPreventFocus(true);
         setSearchingTable(false);
         return {
             data: response.data,
