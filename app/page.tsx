@@ -69,8 +69,8 @@ export default function Home() {
       {/* {contextHolder} */}
       <main className="flex flex-col max-w-screen-lg mx-auto p-4 lg:p-12 gap-6">
         <div className="p-12 rounded-xl bg-white flex flex-col gap-8 shadow-md">
-          <div className="flex flex-col md:flex-row md:items-center w-full justify-between">
-            <h1 className="text-3xl font-extrabold">Mis listas</h1>
+          <div className="flex flex-col md:flex-row md:items-center w-full justify-between gap-4">
+            <h1 className="text-2xl md:text-3xl font-extrabold">Mis listas</h1>
             <Popover
               title="Crear nueva lista"
               open={createOpen}

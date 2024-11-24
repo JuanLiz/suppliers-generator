@@ -377,7 +377,7 @@ export default function ListPage(props: { params: { id: string; } }) {
             link.download = `${supplierList?.name}.pdf`
             link.click()
             URL.revokeObjectURL(url)
-            messageApi.success('PDF descargado correctamente');
+            messageApi.success('PDF generado correctamente');
         } catch (error) {
             console.error('Error generating PDF:', error)
             messageApi.error('Error al generar el PDF');
@@ -478,7 +478,8 @@ export default function ListPage(props: { params: { id: string; } }) {
                                         style={{
                                             marginBottom: 0,
                                             lineHeight: '2rem',
-                                            fontSize: '1.5rem'
+                                            fontSize: '1.5rem',
+                                            fontWeight: 700,
                                         }}
                                         editable={{
                                             onChange: (name) => {
@@ -801,7 +802,7 @@ export default function ListPage(props: { params: { id: string; } }) {
                         </div>
                         <div className='flex flex-col md:flex-row gap-6 md:items-center justify-between'>
                             {/*Search bar */}
-                            <div className='flex gap-4 items-center'>
+                            <div className='flex gap-4 items-center md:w-1/3'>
                                 <ConfigProvider theme={{
                                     token: { borderRadius: 10, fontSize: 13 }
                                 }}
@@ -810,6 +811,8 @@ export default function ListPage(props: { params: { id: string; } }) {
                                         placeholder="Busca por nombre o código"
                                         allowClear
                                         size='large'
+                                        // variant='filled'
+                                        enterButton
                                         loading={searchingTable}
                                         onSearch={setSearchTableQuery}
                                         onClear={() => setSearchTableQuery('')}
@@ -857,7 +860,7 @@ export default function ListPage(props: { params: { id: string; } }) {
                                 ]}
                             />
                         </div>
-                        <div className={viewMode === 'all' ? 'flex' : 'hidden'}>
+                        <div className={viewMode === 'all' ? '' : 'hidden'}>
                             <ProductListTable
                                 actionRef={actionRef}
                                 dataSource={dataSource}
@@ -872,7 +875,6 @@ export default function ListPage(props: { params: { id: string; } }) {
                             />
                         </div>
                         <div className={`w-full flex-col gap-4 ${viewMode === 'suppliers' ? 'flex' : 'hidden'}`}>
-                            {/* Get all suppliers from dataset and for each one, render a SupplierTable */}
                             {allSuppliers?.map((supplier) => (
                                 <SupplierTable
                                     key={supplier.id}
