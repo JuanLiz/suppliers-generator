@@ -1,9 +1,5 @@
 FROM registry.access.redhat.com/ubi9/nodejs-20 AS base
 
-# This value needs to be synced with the value in the .env file
-# or exec --build-arg API_HOST= to override
-ARG API_HOST=
-
 FROM base AS builder
 USER root
 WORKDIR /app
