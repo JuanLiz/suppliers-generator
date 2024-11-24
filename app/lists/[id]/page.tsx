@@ -13,7 +13,7 @@ import {
     ParamsType,
     RequestData
 } from '@ant-design/pro-components';
-import { AdProduct, CornerDownLeft, Download, FileSuccessOne, LeftSmall, PayCodeTwo, Search, ViewList } from '@icon-park/react';
+import { AdProduct, CornerDownLeft, Download, FileSuccessOne, LeftSmall, Minus, PayCodeTwo, Plus, Search, ViewList } from '@icon-park/react';
 import { pdf } from '@react-pdf/renderer';
 import { Alert, Button, Checkbox, ConfigProvider, Input, message, Popover, Segmented, Select, SelectProps, Space, Spin, Typography } from 'antd';
 import axios from 'axios';
@@ -587,14 +587,30 @@ export default function ListPage(props: { params: { id: string; } }) {
                                         type='number'
                                         id='quantity'
                                         style={{
-                                            width: screen.width < 640 ? '100%' : screen.width < 1024 ? '22%' : '10%',
+                                            width: screen.width < 640 ? '100%' : screen.width < 1024 ? '24%' : screen.width < 1280 ? '22%' :  '16%',
                                             height: '3.5rem',
-                                            marginBottom: window.screen.width < 640 ? '.5rem' : 0
+                                            marginBottom: window.screen.width < 640 ? '.5rem' : 0,
                                         }}
-                                        className='mb-2'
+                                        className='mb-2 no-arrows'
                                         min={1}
+                                        // Button for decrease as prefix
+                                        prefix={
+                                            <Button
+                                                type='link'
+                                                icon={<Minus theme="outline" size="24" fill="#7b7e83" />}
+                                                onClick={() => setSelectedQuantity(selectedQuantity ? selectedQuantity - 1 : 1)}
+                                            />
+                                        }
+                                        suffix={
+                                            <Button
+                                                type='link'
+                                                icon={<Plus theme="outline" size="24" fill="#7b7e83" />}
+                                                onClick={() => setSelectedQuantity(selectedQuantity ? selectedQuantity + 1 : 1)}
+                                            />
+                                        }
                                         value={selectedQuantity}
-                                        placeholder='Cant.'
+                                        placeholder={screen.width >= 640 && screen.width < 860 ? '#' : 'Cant.'}
+                                        // onChange={(e) => setSelectedQuantity(Number(e.target.value))}
                                         onChange={(e) => setSelectedQuantity(Number(e.target.value))}
                                         onFocus={(e) => {
                                             e.target.select()
@@ -622,7 +638,6 @@ export default function ListPage(props: { params: { id: string; } }) {
                                             });
                                         }}
                                         onBlur={(e) => hideKeyHint()}
-
                                     />
                                 </Space.Compact>
                                 <div className='flex gap-0 items-center flex-1'>

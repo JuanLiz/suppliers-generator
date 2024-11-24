@@ -54,6 +54,7 @@ export default function SupplierTable(
         <div className="flex flex-col gap-3 rounded-xl w-full shadow-sm p-4 md:p-6 border border-gray-300">
             <h2 className="font-bold text-lg">{supplier}</h2>
             <Table<ListItem>
+                rowKey="id"
                 columns={columns}
                 dataSource={data}
                 size="middle"
