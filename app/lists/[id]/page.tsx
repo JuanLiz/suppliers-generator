@@ -7,17 +7,18 @@ import { ListItem } from '@/interfaces/ListItem';
 import { Product } from '@/interfaces/Product';
 import { Supplier } from '@/interfaces/Supplier';
 import { SupplierList } from '@/interfaces/SupplierList';
-import { LoadingOutlined } from '@ant-design/icons';
+import { EditOutlined, LoadingOutlined } from '@ant-design/icons';
 import {
     ActionType,
     ParamsType,
     RequestData
 } from '@ant-design/pro-components';
-import { AdProduct, CornerDownLeft, Download, FileSuccessOne, PayCodeTwo, Search, ViewList } from '@icon-park/react';
+import { AdProduct, CornerDownLeft, Download, FileSuccessOne, LeftSmall, PayCodeTwo, Search, ViewList } from '@icon-park/react';
 import { pdf } from '@react-pdf/renderer';
 import { Alert, Button, Checkbox, ConfigProvider, Input, message, Popover, Segmented, Select, SelectProps, Space, Spin, Typography } from 'antd';
 import axios from 'axios';
 import debounce from 'lodash/debounce';
+import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from "react";
 
 // For debounce search
@@ -58,6 +59,7 @@ export default function ListPage(props: { params: { id: string; } }) {
     const [pdfSaveMode, setPdfSaveMode] = useState<'all' | 'suppliers'>('all');
     const [pdfShowSku, setPdfShowSku] = useState<boolean>(true);
     const [pdfSort, setPdfSort] = useState<'name' | 'suppliers' | 'sku'>('name');
+    const [exportPdfVisible, setExportPdfVisible] = useState(false);
 
     const [messageApi, contextHolder] = message.useMessage();
 
@@ -69,6 +71,10 @@ export default function ListPage(props: { params: { id: string; } }) {
     // Reference for table manipulation
     const actionRef = useRef<ActionType>();
     const [editableKeys, setEditableRowKeys] = useState<React.Key[]>([]);
+    // Search bar query
+    const [searchTableQuery, setSearchTableQuery] = useState<string>();
+    // Searching state for table
+    const [searchingTable, setSearchingTable] = useState<boolean>(false);
 
     async function getSupplierList() {
         try {
@@ -78,6 +84,15 @@ export default function ListPage(props: { params: { id: string; } }) {
             console.error(error);
         }
 
+    }
+
+    async function updateSupplierListName(name: string) {
+        try {
+            await axios.put(`/api/lists`, { id: props.params.id, name });
+            getSupplierList();
+        } catch (error) {
+            console.error(error);
+        }
     }
 
     //=== Methods ===//
@@ -271,6 +286,22 @@ export default function ListPage(props: { params: { id: string; } }) {
         // params.page = params.current - 1;
         // params.role = params?.userRoleId;
         const response = await axios.get("/api/lists/" + props.params.id + "/items")
+        // Check if a search query is present
+        if (searchTableQuery && searchTableQuery.length > 0) {
+            const filteredData = response.data.filter((item: ListItem) => {
+                return item.product.name.toLowerCase().includes(searchTableQuery.toLowerCase())
+                    || item.product.sku.toString().includes(searchTableQuery.toLowerCase());
+            });
+            setPreventFocus(true);
+            setSearchingTable(false);
+            return {
+                data: filteredData,
+                success: true,
+                total: filteredData.length
+            };
+        }
+        setPreventFocus(true);
+        setSearchingTable(false);
         return {
             data: response.data,
             success: true,
@@ -339,14 +370,17 @@ export default function ListPage(props: { params: { id: string; } }) {
                     suppliers={allSuppliers}
                 />
             ).toBlob()
+            setExportPdfVisible(false);
             const url = URL.createObjectURL(blob)
             const link = document.createElement('a')
             link.href = url
             link.download = `${supplierList?.name}.pdf`
             link.click()
             URL.revokeObjectURL(url)
+            messageApi.success('PDF descargado correctamente');
         } catch (error) {
             console.error('Error generating PDF:', error)
+            messageApi.error('Error al generar el PDF');
         }
         setIsGeneratingPdf(false)
     }
@@ -398,6 +432,15 @@ export default function ListPage(props: { params: { id: string; } }) {
         createListItem();
     }, [creatingItem]);
 
+    // Trigger search on search query change
+    useEffect(() => {
+        if (searchTableQuery === undefined) return;
+        console.log('searching', searchTableQuery);
+        if (searchTableQuery.length == 0) setSearchTableQuery(undefined);
+        setSearchingTable(true);
+        actionRef.current?.reload();
+    }, [searchTableQuery]);
+
     // Change pdf options on mode change
     useEffect(() => {
         setPdfSaveMode(viewMode);
@@ -418,14 +461,42 @@ export default function ListPage(props: { params: { id: string; } }) {
                             </div>
                         </div>
                     ) : (
-                        <ConfigProvider
-                            theme={{
-                                token: {
-                                    borderRadius: 36
-                                },
-                            }}
-                        >
-                            <h1 className="text-2xl font-bold">{supplierList.name}</h1>
+                        <ConfigProvider theme={{ token: { borderRadius: 36 }, }} >
+                            <div className='flex items-center gap-2'>
+                                <ConfigProvider theme={{ token: { borderRadius: 8 }, }} >
+                                    <Link href='/'>
+                                        <Button
+                                            type='text'
+                                            icon={<LeftSmall theme="outline" size="24" fill="#0B1215" />}
+                                        // onClick={() => history.back()}
+                                        >
+                                        </Button>
+                                    </Link>
+                                    <Typography.Title
+                                        level={3}
+                                        className="text-2xl font-bold group"
+                                        style={{
+                                            marginBottom: 0,
+                                            lineHeight: '2rem',
+                                            fontSize: '1.5rem'
+                                        }}
+                                        editable={{
+                                            onChange: (name) => {
+                                                updateSupplierListName(name);
+                                            },
+                                            icon: (
+                                                <div className="lg:hidden lg:group-hover:block ms-1">
+                                                    <EditOutlined style={{ color: '#7b7e83', fontSize: '1.2rem' }} />
+                                                </div>
+                                            ),
+                                            triggerType: ['icon', 'text'],
+                                            tooltip: 'Editar nombre',
+                                        }}
+                                    >
+                                        {supplierList.name}
+                                    </Typography.Title>
+                                </ConfigProvider>
+                            </div>
                             <div className='flex flex-col md:flex-row items-center gap-4 flex-1'>
                                 <Space.Compact size="large" className='w-full' direction={screen.width < 640 ? 'vertical' : 'horizontal'}>
                                     {/* Select between barcode and manual input */}
@@ -641,7 +712,7 @@ export default function ListPage(props: { params: { id: string; } }) {
                                     <div className='flex flex-col gap-4 w-96 md:w-[28rem] px-3 py-4' >
                                         <h3 className='font-bold text-lg'>Opciones de generación</h3>
                                         <div className='flex flex-col gap-1'>
-                                            
+
                                             <Segmented
                                                 value={pdfSaveMode}
                                                 block
@@ -704,6 +775,8 @@ export default function ListPage(props: { params: { id: string; } }) {
                                 placement={screen.width < 640 ? 'bottom' : 'bottomRight'}
                                 arrow={false}
                                 trigger="click"
+                                open={exportPdfVisible}
+                                onOpenChange={(visible) => setExportPdfVisible(visible)}
                             >
                                 <Button
                                     type='primary'
@@ -712,14 +785,38 @@ export default function ListPage(props: { params: { id: string; } }) {
                                         height: '3rem',
                                         borderRadius: '1rem',
                                     }}
-                                    icon={<FileSuccessOne theme="outline" strokeWidth={4} size="24" fill="#ffffff" />}
+                                    disabled={!dataSource || dataSource.length < 1}
+                                    icon={
+                                        <FileSuccessOne
+                                            theme="outline"
+                                            strokeWidth={4}
+                                            size="24"
+                                            fill={dataSource && dataSource.length > 0 ? "#ffffff" : "#7b7e83"}
+                                        />
+                                    }
                                 >
                                     Generar PDF
                                 </Button>
                             </Popover>
                         </div>
-                        <div className='flex flex-col md:flex-row gap-2 md:items-center'>
-                            <span className='text-sm font-semibold'>Mostrar:</span>
+                        <div className='flex flex-col md:flex-row gap-6 md:items-center justify-between'>
+                            {/*Search bar */}
+                            <div className='flex gap-4 items-center'>
+                                <ConfigProvider theme={{
+                                    token: { borderRadius: 10, fontSize: 13 }
+                                }}
+                                >
+                                    <Input.Search
+                                        placeholder="Busca por nombre o código"
+                                        allowClear
+                                        size='large'
+                                        loading={searchingTable}
+                                        onSearch={setSearchTableQuery}
+                                        onClear={() => setSearchTableQuery('')}
+                                    />
+                                </ConfigProvider>
+                            </div>
+
                             <Segmented
                                 value={viewMode}
                                 className='w-min'
@@ -760,7 +857,7 @@ export default function ListPage(props: { params: { id: string; } }) {
                                 ]}
                             />
                         </div>
-                        {viewMode === 'all' ? (
+                        <div className={viewMode === 'all' ? 'flex' : 'hidden'}>
                             <ProductListTable
                                 actionRef={actionRef}
                                 dataSource={dataSource}
@@ -771,19 +868,19 @@ export default function ListPage(props: { params: { id: string; } }) {
                                 editableKeys={editableKeys}
                                 setEditableRowKeys={setEditableRowKeys}
                                 setPreventFocus={setPreventFocus}
+                                loading={!dataSource || searchingTable}
                             />
-                        ) : (
-                            <div className='w-full flex flex-col gap-4'>
-                                {/* Get all suppliers from dataset and for each one, render a SupplierTable */}
-                                {allSuppliers?.map((supplier) => (
-                                    <SupplierTable
-                                        key={supplier.id}
-                                        supplier={supplier.name}
-                                        data={dataSource?.filter((item) => item.product.supplier?.id === supplier.id) || []}
-                                    />
-                                ))}
-                            </div>
-                        )}
+                        </div>
+                        <div className={`w-full flex-col gap-4 ${viewMode === 'suppliers' ? 'flex' : 'hidden'}`}>
+                            {/* Get all suppliers from dataset and for each one, render a SupplierTable */}
+                            {allSuppliers?.map((supplier) => (
+                                <SupplierTable
+                                    key={supplier.id}
+                                    supplier={supplier.name}
+                                    data={dataSource?.filter((item) => item.product.supplier?.id === supplier.id) || []}
+                                />
+                            ))}
+                        </div>
                     </>)}
 
                 </div>

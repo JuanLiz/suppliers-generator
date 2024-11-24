@@ -13,7 +13,8 @@ export default function ProductListTable(
         deleteFunction,
         editableKeys,
         setEditableRowKeys,
-        setPreventFocus
+        setPreventFocus,
+        loading
     }: {
         dataSource: readonly ListItem[] | undefined,
         setDataSource: any,
@@ -23,7 +24,8 @@ export default function ProductListTable(
         editableKeys: React.Key[],
         setEditableRowKeys: (keys: React.Key[]) => void,
         actionRef: any,
-        setPreventFocus: (value: boolean) => void
+        setPreventFocus: (value: boolean) => void,
+        loading: boolean
     }
 ) {
 
@@ -55,7 +57,7 @@ export default function ProductListTable(
                 return a.quantity - b.quantity
             },
             render: (text, record, index, action) => {
-                return <span className='font-bold text-end'>{record.quantity}</span>
+                return <span className='font-bold text-end'>{record.quantity}</span> 
             }
         },
         {
@@ -63,6 +65,9 @@ export default function ProductListTable(
             dataIndex: 'name',
             width: screen.width < 1024 ? '8%' : '25%',
             editable: false,
+            search: {
+                transform: (value: string) => ({ product: { name: value } })
+            },
             sorter: (a, b) => {
                 setPreventFocus(true);
                 return a.product.name.localeCompare(b.product.name)
@@ -129,25 +134,14 @@ export default function ProductListTable(
             y: 600
         }}
         size={screen.width < 1024 ? 'small' : 'middle'}
-        className="-mt-4 mx-2.5 lg:mx-0"
+        className="mx-2.5 lg:mx-0"
         recordCreatorProps={false}
-        loading={dataSource == undefined}
+        loading={loading}
         columns={columns}
         actionRef={actionRef}
         request={fetchFunction}
         value={dataSource}
         onChange={setDataSource}
-        search={{
-            labelWidth: 'auto',
-            span: {
-                xs: 24,
-                sm: 12,
-                md: 12,
-                lg: 6,
-                xl: 6,
-                xxl: 6,
-            },
-        }}
         editable={{
             type: 'single',
             editableKeys,

@@ -1,101 +1,181 @@
-import Image from "next/image";
+'use client'
+
+import { SupplierList } from "@/interfaces/SupplierList";
+import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
+import { Button, Form, Input, List, Popconfirm, Popover } from "antd";
+import { useForm } from "antd/es/form/Form";
+import Paragraph from "antd/es/typography/Paragraph";
+import axios from "axios";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const [supplierLists, setSupplierLists] = useState<SupplierList[]>();
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creatingList, setCreatingList] = useState(false);
+  const [newListForm] = useForm();
+
+
+  async function getSupplierLists() {
+    try {
+      const response = await axios.get<SupplierList[]>('/api/lists');
+      setSupplierLists(response.data.reverse());
+    } catch (error) {
+      console.error(error);
+    }
+
+  }
+
+  async function createSupplierList(values: any) {
+    setCreatingList(true);
+    try {
+      await axios.post('/api/lists', values);
+      getSupplierLists();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      newListForm.resetFields();
+      setCreateOpen(false);
+      setCreatingList(false);
+    }
+  }
+
+  async function updateSupplierListName(id: string, name: string) {
+    try {
+      await axios.put(`/api/lists`, { id, name });
+      getSupplierLists();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function deleteSupplierList(id: string) {
+    try {
+      await axios.delete(`/api/lists/${id}`);
+      getSupplierLists();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  useEffect(() => {
+    getSupplierLists();
+  }, []);
+
+
+  return (
+    <div className="bg-gray-200/70 min-h-screen">
+      {/* {contextHolder} */}
+      <main className="flex flex-col max-w-screen-lg mx-auto p-4 lg:p-12 gap-6">
+        <div className="p-12 rounded-xl bg-white flex flex-col gap-8 shadow-md">
+          <div className="flex flex-col md:flex-row md:items-center w-full justify-between">
+            <h1 className="text-3xl font-extrabold">Mis listas</h1>
+            <Popover
+              title="Crear nueva lista"
+              open={createOpen}
+              onOpenChange={setCreateOpen}
+              content={
+                <Form
+                  layout="vertical"
+                  form={newListForm}
+                  onFinish={createSupplierList}
+                >
+                  <Form.Item
+                    label="Nombre de la lista"
+                    name="name"
+                    rules={[{ required: true, message: 'Ingresa un nombre' }]}
+                  >
+                    <Input type="text" />
+                  </Form.Item>
+                  <Form.Item>
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      className="w-full"
+                      loading={creatingList}
+                    >
+                      Crear
+                    </Button>
+                  </Form.Item>
+                </Form>
+              }
+              trigger="click"
+            >
+              <Button
+                type="primary"
+                size="large"
+                style={{
+                  height: '3rem',
+                  borderRadius: '1rem',
+                }}
+                icon={<PlusOutlined />}
+              >
+                Nueva lista
+              </Button>
+            </Popover>
+          </div>
+          <List
+            loading={!supplierLists}
+            itemLayout="horizontal"
+            className="border-y border-gray-200"
+            dataSource={supplierLists}
+            renderItem={item => (
+              <List.Item
+                key={item.id}
+                className="hover:bg-gray-100 border-s-4 border-s-white hover:border-s-orange-500 transition-all duration-300 ease-in-out w-full flex group">
+                <Link
+                  href={`/lists/${item.id}`}
+                  className="flex items-center justify-between w-full ps-4"
+                >
+                  <List.Item.Meta
+                    title={
+                      <Paragraph
+                        className="text-base font-semibold"
+                        style={{
+                          marginBottom: 0,
+                          lineHeight: '1.75rem',
+                          fontSize: '1.125rem'
+                        }}
+                        editable={{
+                          onChange: (name) => {
+                            updateSupplierListName(item.id!, name);
+                          },
+                          icon: (
+                            <div className="lg:hidden lg:group-hover:block ms-1">
+                              <EditOutlined style={{ color: '#7b7e83' }} />
+                            </div>
+                          )
+                        }}
+                      >
+                        {item.name}
+                      </Paragraph>
+
+                    }
+                    description={`Creada el ${new Date(item.creationDate!).toLocaleString()}`}
+                  />
+                </Link>
+
+                <Popconfirm
+                  title="Se eliminará esta lista junto con todos sus productos"
+                  onConfirm={() => deleteSupplierList(item.id!)}
+                  okText="Eliminar"
+                  cancelText="Cancelar"
+                  okButtonProps={{ danger: true }}
+                >
+                  <Button
+                    type="text"
+                    icon={<DeleteOutlined />}
+                    size="large"
+                    danger
+                    className="text-red-500"
+                  />
+                </Popconfirm>
+              </List.Item>
+            )}
+          />
         </div>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
