@@ -9,7 +9,7 @@ COPY . .
 RUN npm run build
 
 
-FROM oven/bun:alpine AS runner
+FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -28,4 +28,4 @@ EXPOSE 3000
 ENV PORT=3000
 
 ENV HOSTNAME="0.0.0.0"
-CMD ["bun", "server.js"]
+CMD ["node", "server.js"]
