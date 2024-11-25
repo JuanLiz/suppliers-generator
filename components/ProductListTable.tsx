@@ -87,7 +87,7 @@ export default function ProductListTable(
             search: false,
             sorter: (a, b) => {
                 setPreventFocus(true);
-                return a.product.supplier?.name.localeCompare(b.product.supplier?.name!)!
+                return (a.product.supplier?.name ?? '').localeCompare(b.product.supplier?.name ?? '');
             },
             render: (text, record, index, action) => {
                 return <span>{record.product.supplier?.name}</span>
