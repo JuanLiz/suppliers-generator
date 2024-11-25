@@ -35,6 +35,8 @@ export default function ProductListDocument({ mode, dataSource, sort, showSku, s
             flexDirection: 'column',
             backgroundColor: '#ffffff',
             padding: 30,
+            // Client requirement 
+            paddingTop: 10,
         },
         title: {
             fontFamily: 'Inter',
@@ -54,7 +56,7 @@ export default function ProductListDocument({ mode, dataSource, sort, showSku, s
             fontFamily: 'Inter',
             fontSize: 9,
             fontWeight: 'light',
-            paddingBottom: 20
+            paddingBottom: 10
         },
         table: {
             display: 'flex',
@@ -153,17 +155,18 @@ export default function ProductListDocument({ mode, dataSource, sort, showSku, s
     return dataSource && (
         <Document>
             <Page size="LETTER" style={styles.page}>
-                {/* Title */}
-                <View>
-                    <Text style={styles.title}>
-                        {dataSource[0].supplierList.name}
-                    </Text>
-                    {/* Generated Date */}
-                    <Text style={styles.timeStamp}>
-                        Generada el {new Date().toLocaleString()}
-                    </Text>
-                </View>
-                {mode === 'all' ? (
+
+                {mode === 'all' ? (<>
+                    {/* Title */}
+                    < View >
+                        <Text style={styles.title}>
+                            {dataSource[0].supplierList.name}
+                        </Text>
+                        {/* Generated Date */}
+                        <Text style={styles.timeStamp}>
+                            Generada el {new Date().toLocaleString()}
+                        </Text>
+                    </View>
                     <View style={styles.table}>
                         {/* Table Header */}
                         <View style={styles.tableRow}>
@@ -205,7 +208,17 @@ export default function ProductListDocument({ mode, dataSource, sort, showSku, s
                             </View>
                         ))}
                     </View>
-                ) : mode === 'suppliers' && suppliers && suppliers.map((supplier, supplierIndex) => (
+                </>) : mode === 'suppliers' && suppliers && suppliers.map((supplier, supplierIndex) => (<>
+                    {/* Title */}
+                    <View break={supplierIndex != 0}>
+                        <Text style={styles.title}>
+                            {dataSource[0].supplierList.name}
+                        </Text>
+                        {/* Generated Date */}
+                        <Text style={styles.timeStamp}>
+                            Generada el {new Date().toLocaleString()}
+                        </Text>
+                    </View>
                     <View key={supplierIndex} style={styles.sectionSeparator}>
                         <View>
                             <Text style={styles.supplierTitle}>
@@ -253,8 +266,8 @@ export default function ProductListDocument({ mode, dataSource, sort, showSku, s
                                 ))}
                         </View>
                     </View>
-                ))}
+                </>))}
             </Page>
-        </Document>
+        </Document >
     )
 }
