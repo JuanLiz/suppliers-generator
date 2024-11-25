@@ -347,6 +347,7 @@ export default function SearchBar({
                             className='shadow-sm rounded-xl w-full mb-2'
                             size='large'
                             value={inputMode}
+                            onChange={(value) => setInputMode(value)}
                             options={[
                                 {
                                     label: (
